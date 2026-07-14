@@ -22,7 +22,7 @@ const ForgotPassword = () => {
             }
         } catch (error) {
             console.log(error);
-            // toast.error(res.error.response.message);
+            toast.error(error?.response?.data?.message);
         }
     }
     //Verify OTP :
@@ -35,7 +35,7 @@ const ForgotPassword = () => {
             }
         } catch (error) {
             console.log(error);
-            // toast.error(res.error.response.message);
+            toast.error(error?.response?.data?.message);
         }
     }
     //Reset Password :

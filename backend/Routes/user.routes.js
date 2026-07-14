@@ -2,7 +2,7 @@ import express from 'express';
 import { currentUser, googleLogin, googleSignup, login, logout, register, resetPassword, sendOtp, updateDelivaryBoysAvailability, updatePosition, userOrderAddressUpdate, userProfile, userUpdate, verifyOtp} from '../Controllers/user.controller.js';
 import { isAuth } from '../isAuth/isAuthentication.js';
 import { upload } from '../isAuth/multer.js';
-import { LocalLoginRateLimit, LocalSignUpRateLimit } from '../RateLimiting/rateLimiting.js';
+import { LocalLoginRateLimit, LocalSignUpRateLimit, resetOtpRateLimit, sendOtpRateLimit, verifyOtpRateLimit } from '../RateLimiting/rateLimiting.js';
 
 let UserRoute = express.Router();
 
@@ -35,8 +35,8 @@ UserRoute.put("/updateavailability" , isAuth , updateDelivaryBoysAvailability)
 
 
 //Reset password field :
-UserRoute.post("/send-otp",sendOtp)
-UserRoute.post("/verify-otp",verifyOtp)
-UserRoute.post("/reset-password",resetPassword)
+UserRoute.post("/send-otp", sendOtpRateLimit , sendOtp)
+UserRoute.post("/verify-otp", verifyOtpRateLimit , verifyOtp)
+UserRoute.post("/reset-password", resetOtpRateLimit , resetPassword)
 
 export default UserRoute;
