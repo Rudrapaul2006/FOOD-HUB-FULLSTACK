@@ -1,0 +1,26 @@
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    container_name: Food_Hub_Frontend
+    depends_on:
+      - backend
+    env_file:
+      - ./frontend/.env
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    container_name: Food_Hub_Backend
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - redis
+
+  redis : 
+    image: redis
+    container_name: Food_Hub_Redis
+    ports:
+      - "6379:6379"
