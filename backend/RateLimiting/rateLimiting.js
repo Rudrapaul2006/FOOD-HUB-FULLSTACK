@@ -16,7 +16,7 @@ let rateLimitOBJ = {
 
     handler: (req, res) => {
         return res.status(400).json({
-            message: "Too many login attempts . Please try again after 15 minutes",
+            message: "Too many attempts . Please try again after 15 minutes",
             success: false
         })
     }
@@ -36,7 +36,7 @@ let rateLimitForOTP = {
 
     handler: (req, res) => {
         return res.status(400).json({
-            message: "Too many login attempts . Please try again after 5 minutes",
+            message: "Too many attempts . Please try again after 5 minutes",
             success: false
         })
     }
@@ -58,4 +58,53 @@ export let sendOtpRateLimit = rateLimit(rateLimitForOTP)
 export let verifyOtpRateLimit = rateLimit (rateLimitForOTP)
 
 
+
 // SHOP ROUTE RATE LIMITING :
+
+let shopRateLimit = {
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: false,
+    legacyHeaders: true,
+    skipSuccessfulRequests: true,
+
+    keyGenerator: () => {
+        return `${req.body.email}-${ipKeyGenerator(req.ip)}`
+    },
+
+    handler: (req , res) => {
+        return res.status(400).json({
+            message: "Too many attepts please try again 15 min later",
+            success: success
+        })
+    }
+}
+
+// shop register RATE LIMITING :
+export let shopRegisterRateLimit = rateLimit(shopRateLimit)
+
+// shop status RATE LIMITING :
+export let shopStatusRateLimit = rateLimit(shopRateLimit)
+
+
+
+// SHOP ROUTE RATE LIMITING :
+
+//food register RATE LIMIT :
+export let foodRegisterRateLimit = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+
+    keyGenerator: (req) => {
+        return `${req.body.email}-${ipKeyGenerator(req.ip)}`
+    },
+    handler: (req , res) => {
+        return res.status(400).json({
+            message: "Too many attempts , please try again 10 min later ",
+            success: false
+        })
+    }
+})
