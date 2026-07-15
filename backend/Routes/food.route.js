@@ -6,10 +6,10 @@ import { foodRegisterRateLimit } from "../RateLimiting/rateLimiting.js";
 
 let foodRoute = express.Router()
 
-foodRoute.post("/register" , isAuth, foodRegisterRateLimit ,  upload.single("image") ,registerFood)
+foodRoute.post("/register" , isAuth, foodRegisterRateLimit,  upload.single("image") ,registerFood)
 foodRoute.get("/get", isAuth , getAllfoods)
 foodRoute.get("/get/:id" , isAuth, getFoodById)
-foodRoute.put("/update/:id" , isAuth,upload.single("image"), updateFoodDetails)
+foodRoute.put("/update/:id" , isAuth, upload.single("image"), updateFoodDetails)
 foodRoute.delete("/delete/:id" , isAuth, deleteFoodByID )
 
 //User route :

@@ -11,7 +11,7 @@ shopRoute.post("/register", isAuth, shopRegisterRateLimit, upload.single("image"
 shopRoute.get("/get", isAuth , getShop);
 shopRoute.put("/update/:id", isAuth ,upload.single("image"), shopUpdate);
 shopRoute.delete("/delete/:id", isAuth , deleteShop)
-shopRoute.put("/shopstatus" , isAuth , shopStatusRateLimit, shopStatus)
+shopRoute.put("/shopstatus" , isAuth , shopStatusRateLimit,  shopStatus)
 
 // for user :
 shopRoute.get("/get/:id", isAuth , getShopById);

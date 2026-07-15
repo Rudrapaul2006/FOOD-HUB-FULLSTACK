@@ -60,17 +60,6 @@ app.use('/api/cart', cartRoute)
 //calling socket IO function :
 socketIO(io)
 
-// ading io redis in server :
-let redisInstance = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379")
-
-//redis connection :
-redisInstance.on("connect", () => {
-  console.log(chalk.red.bgBlack("Redis Connected"))
-})
-
-redisInstance.on("error", (err) => {
-  console.log(chalk.red("Redis Error"), err)
-})
 
 server.listen(PORT, () => {
   //DB connection :

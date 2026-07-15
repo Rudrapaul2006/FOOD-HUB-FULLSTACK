@@ -115,7 +115,7 @@ export let getFoodById = async (req, res) => {
     try {
         let foodId = req.params.id;
 
-        let food = await CART.findOne({ _id: foodId }).populate("foodDetails").populate("shopDetails").populate("userDetails", "fullname address location pincode email phone")
+        let food = await CART.findOne({ _id: foodId }).populate("foodDetails").populate("shopDetails").populate("userDetails", "fullname address location pincode email phone _id")
         if (!food) {
             return res.status(400).json({
                 message: "Food Item not found",

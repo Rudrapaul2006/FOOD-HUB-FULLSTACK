@@ -34,7 +34,7 @@ export let allShopOrder = async (req, res) => {
 
         let cartData = await CART.find({ userDetails: userId })
             .populate("foodDetails", "foodname price category description isAvailable foodtype shopDetails")
-            .populate("userDetails", "fullname email phone location role address pincode")
+            .populate("userDetails", "fullname email phone location role address pincode _id")
             .populate("shopDetails", "shopGeoLocation shopname email description location phone city state open")
             .populate({
                 path: "shopDetails",
@@ -672,7 +672,7 @@ export let getAllCartItem = async (req, res) => {
 
         let cartItems = await CART.find({ userDetails: userId })
             .populate("foodDetails", "foodname price image category description isAvailable foodtype")
-            .populate("userDetails", "fullname email phone location role address pincode")
+            .populate("userDetails", "fullname email phone location role address pincode _id")
             .populate("shopDetails", "shopGeoLocation shopname email description location phone city state")
             .populate({
                 path: "shopDetails",
