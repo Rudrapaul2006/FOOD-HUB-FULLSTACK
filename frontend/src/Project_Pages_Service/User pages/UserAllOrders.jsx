@@ -45,8 +45,8 @@ const UserAllOrders = () => {
 
     //URL handling :
     useEffect(() => {
-        navigate(`/userorders?page=${userPendingOrderCurrentPage}`) , {replace: true}
-    },  [userPendingOrderCurrentPage])
+        navigate(`/userorders?page=${userPendingOrderCurrentPage}`), { replace: true }
+    }, [userPendingOrderCurrentPage])
 
     return (
         <>
@@ -127,7 +127,17 @@ const UserAllOrders = () => {
                                             </td>
 
                                             <td className="p-2 text-center border">
-                                                <span className={`flex items-center justify-center px-2 py-1 rounded-xl text-xs font-medium border ${order?.items?.[0]?.orderStatus === "pending" ? "bg-yellow-200 text-[brown]/90 border-[brown]/70" : order?.items?.[0]?.orderStatus === "cancel" ? "text-red-600 bg-red-200 border border-red-400 " : order?.items?.[0]?.orderStatus === "out for delivary" ? "bg-blue-200 text-blue-600 border-blue-500" : order?.items?.[0]?.orderStatus === "preparing" ? "bg-purple-200 text-purple-600 border-purple-500" : "bg-green-200 text-green-700 border border-green-500"}`}>
+                                                <span className={`flex items-center justify-center px-2 py-1 rounded-xl text-xs font-medium border ${order?.items?.[0]?.orderStatus === "pending"
+                                                    ? "bg-yellow-200 text-[brown]/90 border-[brown]/70"
+                                                    : order?.items?.[0]?.orderStatus === "cancel"
+                                                        ? "text-red-600 bg-red-200 border border-red-400 "
+                                                        : order?.items?.[0]?.orderStatus === "out for delivary"
+                                                            ? "bg-blue-200 text-blue-600 border-blue-500"
+                                                            : order?.items?.[0]?.orderStatus === "preparing"
+                                                                ? "bg-purple-200 text-purple-600 border-purple-500"
+                                                                : order?.items?.[0]?.orderStatus === "picked up and on_the_way"
+                                                                    ? "bg-cyan-100 text-cyan-800 border border-cyan-500"
+                                                                    : "bg-green-200 text-green-700 border border-green-500"}`}>
                                                     {order?.items?.[0]?.orderStatus}
                                                 </span>
                                             </td>
@@ -153,7 +163,7 @@ const UserAllOrders = () => {
             </div>
 
             {/* Pagination */}
-            {   userPendingOrderTotalPages > 1 && 
+            {userPendingOrderTotalPages > 1 &&
                 <div className='mx-2 lg:mx-20 fixed bottom-0 left-0 right-0 border-t border-black bg-white z-50 py-2'>
                     <div className='w-full flex gap-2 items-center justify-center px-2 lg:px-20'>
 

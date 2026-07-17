@@ -165,8 +165,8 @@ const UserOrders = () => {
 
                       <td className="border px-4 py-2">
                         <span className={`px-2 py-1 rounded-xl text-xs font-medium ${group?.items?.every(item => item?.payment)
-                            ? "bg-green-200 text-green-800 border border-green-600"
-                            : "bg-yellow-200 text-[brown] border border-[brown]"
+                          ? "bg-green-200 text-green-800 border border-green-600"
+                          : "bg-yellow-200 text-[brown] border border-[brown]"
                           }`}>
                           {group?.items?.every(item => item?.payment) ? "Paid" : "Pending"}
                         </span>
@@ -174,11 +174,13 @@ const UserOrders = () => {
 
                       <td className="border px-4 py-2">
                         <span className={`px-2 py-1 rounded-xl text-xs font-medium ${group?.items?.[0]?.orderStatus === "pending"
-                            ? "bg-yellow-200 text-[brown] border border-[brown]"
-                            : group?.items?.[0]?.orderStatus === "preparing"
-                              ? "bg-purple-200 text-purple-700 border border-purple-600"
-                              : group?.items?.[0]?.orderStatus === "out for delivary"
-                                ? "bg-blue-200 text-blue-700 border border-blue-600"
+                          ? "bg-yellow-200 text-[brown] border border-[brown]"
+                          : group?.items?.[0]?.orderStatus === "preparing"
+                            ? "bg-purple-200 text-purple-700 border border-purple-600"
+                            : group?.items?.[0]?.orderStatus === "out for delivary"
+                              ? "bg-blue-200 text-blue-700 border border-blue-600"
+                              : group?.items?.[0]?.orderStatus === "picked up and on_the_way"
+                                ? "bg-cyan-100 text-cyan-800 border border-cyan-500"
                                 : group?.items?.[0]?.orderStatus === "cancel"
                                   ? "bg-red-200 text-red-700 border border-red-600"
                                   : "bg-green-200 text-green-700 border border-green-600"

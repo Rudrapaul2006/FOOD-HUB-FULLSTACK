@@ -255,7 +255,7 @@ const OrderDetails = () => {
                               isDisable = true
                             }
                             if (s === currentStatus) { isDisable = true }
-                            if (currentStatus === "compleate" || currentStatus === "cancel") { isDisable = true }
+                            if (currentStatus === "compleate" || currentStatus === "cancel" || currentStatus === "picked up and on_the_way") { isDisable = true }
                             if (currentStatus === "pending" && (s === "out for delivary")) { isDisable = true }
                             if (s === "preparing" && currentStatus === "out for delivary") { isDisable = true }
                             if (s === "out for delivary" && currentStatus === "cancel") { isDisable = true }

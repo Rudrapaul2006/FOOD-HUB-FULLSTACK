@@ -738,7 +738,7 @@ export let getAllPendingOrders = async (req, res) => {
 
         // Get unique order groups sorted by latest order first
         let orderGroupIds = await ORDER.aggregate([
-            { $match: { shopDetails: shop._id, orderStatus: { $in: ["pending", "preparing", "out for delivary"] } } },
+            { $match: { shopDetails: shop._id, orderStatus: { $in: ["pending", "preparing", "out for delivary" , "picked up and on_the_way"] } } },
             { $sort: { createdAt: -1 } },
             { $group: { _id: "$orderGroupId", latestCreatedAt: { $first: "$createdAt" } } },
             { $sort: { latestCreatedAt: -1 } },
@@ -751,7 +751,7 @@ export let getAllPendingOrders = async (req, res) => {
             {
                 $match: {
                     shopDetails: shop._id,
-                    orderStatus: { $in: ["pending", "preparing", "out for delivary"] }
+                    orderStatus: { $in: ["pending", "preparing", "out for delivary" , "picked up and on_the_way"] }
                 }
             },
             {
@@ -1415,7 +1415,7 @@ export let updateOrderAddress = async (req, res) => {
 
 
 
-// user_side all order get : [pending / preparing / out for delivary  order]  [pagination]:
+// user_side all order get : [pending / preparing / out for delivary / (picked up and on_the_way)  order]  [pagination]:
 export let userOrders = async (req, res) => {
     try {
         let userId = req.id
@@ -1433,11 +1433,11 @@ export let userOrders = async (req, res) => {
                 $in: [true, false]
             },
             orderStatus: {
-                $in: ["pending", "preparing", "out for delivary"]
+                $in: ["pending", "preparing", "out for delivary" , "picked up and on_the_way"]
             }
         }
 
-        //order aggrigate pipeline : [get user pending / preparing / out for delivary  : unique orders(same orderGroupId order's)]
+        //order aggrigate pipeline : [get user pending / preparing / out for delivary / picked up and on_the_way : unique orders(same orderGroupId order's)]
         let uniqueOrders = await ORDER.aggregate([
             {
                 $match: commonMatch

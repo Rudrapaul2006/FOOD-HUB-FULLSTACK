@@ -136,9 +136,9 @@ const UserOrderDetails = () => {
                                 return (
                                     <>
                                         <button
-                                            disabled={status === "cancel" || status === "out for delivary" || status === "compleate" || socketOrderStatus === "out for delivary" || socketOrderStatus === "cancel" || socketOrderStatus === "compleate" }
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${status === "cancel" || status === "out for delivary" || status === "compleate" || socketOrderStatus === "out for delivary"
-                                                || socketOrderStatus === "cancel"|| socketOrderStatus === "compleate" ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                                            disabled={status === "cancel" || status === "out for delivary" || status === "picked up and on_the_way"  || status === "compleate" || socketOrderStatus === "out for delivary" || socketOrderStatus === "cancel" || socketOrderStatus === "compleate" || socketOrderStatus === "picked up and on_the_way"}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${status === "cancel" || status === "out for delivary" || status === "picked up and on_the_way"  || status === "compleate" || socketOrderStatus === "out for delivary"
+                                                || socketOrderStatus === "cancel" || socketOrderStatus === "picked up and on_the_way" || socketOrderStatus === "compleate" ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                                                 : "bg-red-500 hover:bg-red-600 text-white cursor-pointer"}`} key={index}
 
                                             onClick={() => {

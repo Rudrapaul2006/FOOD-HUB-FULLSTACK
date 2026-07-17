@@ -20,10 +20,10 @@ const OrderDetailsForDelivaryBoy = () => {
     let navigate = useNavigate()
     let [orderDetails, setOrderDetails] = useState([])
     let [otp, setOtp] = useState("")
-    let [step, setStep] = useState(1)
+    let [step, setStep] = useState(0)
     let groupId = orderDetails?.order?.map(i => i?.orderGroupId.toString())[0]
 
-    let { userData, socket } = useSelector(state => state.user)
+    let orderStatus = orderDetails?.order?.map(i => i?.orderStatus)[0]
 
     //fetch the order details :
     let fetchOrderDetails = async () => {
@@ -41,20 +41,19 @@ const OrderDetailsForDelivaryBoy = () => {
         fetchOrderDetails()
     }, [assignmentId])
 
-    //Update payment status : [step = 3]
-    let updatePaymentStatus = async (newStatus) => {
+
+    // change order status [out for delivary to picked up and on_the_way] : [step = 0]
+    let changeOrderStatus = async (orderGroupId) => {
         try {
-            let res = await axios.put(`${import.meta.env.VITE_delivary_endpoint}/updatepaymentstatus/${assignmentId}`, { paymentStatus: newStatus }, { withCredentials: true });
+            let res = await axios.post(`${import.meta.env.VITE_delivary_endpoint}/acceptorderstatusupdate`, { groupOrderId: orderGroupId }, { withCredentials: true })
+
             if (res.data.success) {
-                dispatch(updateOrderPaymentStatus(res.data.updateOrderPaymentStatus))
-                setOrderDetails(res.data.updateOrderPaymentStatus)
-                if (res.data.updateOrderPaymentStatus?.paymentStatus === "paid" || orderDetails?.paymentStatus === "paid") {
-                    navigate("/delivaryboyhome")
-                }
-                toast.success(res.data.message)
+                toast.success(res?.data?.message)
+                setStep(1)
             }
         } catch (error) {
             console.log(error)
+            toast.error(error?.response?.data?.error || "Something error in change order status")
         }
     }
 
@@ -89,7 +88,24 @@ const OrderDetailsForDelivaryBoy = () => {
         }
     }
 
-    //[step = 4] -> update delivary status to compleate :
+    //Update payment status : [step = 3]
+    let updatePaymentStatus = async (newStatus) => {
+        try {
+            let res = await axios.put(`${import.meta.env.VITE_delivary_endpoint}/updatepaymentstatus/${assignmentId}`, { paymentStatus: newStatus }, { withCredentials: true });
+            if (res.data.success) {
+                dispatch(updateOrderPaymentStatus(res.data.updateOrderPaymentStatus))
+                setOrderDetails(res.data.updateOrderPaymentStatus)
+                if (res.data.updateOrderPaymentStatus?.paymentStatus === "paid" || orderDetails?.paymentStatus === "paid") {
+                    navigate("/delivaryboyhome")
+                }
+                toast.success(res.data.message)
+            }
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    //update delivary status to compleate : [step = 4]
     let updateDelivaryStatus = async (newStatus) => {
         try {
             let res = await axios.put(`${import.meta.env.VITE_delivary_endpoint}/updatedelivarystatus/${assignmentId}`, { orderStatus: newStatus }, { withCredentials: true })
@@ -102,6 +118,16 @@ const OrderDetailsForDelivaryBoy = () => {
             toast.error(error.response.data.message || "Something went wrong")
         }
     }
+
+    useEffect(() => {
+        if (!orderStatus) return;
+
+        if (orderStatus === "out for delivary") {
+            setStep(0)
+        } else if (orderStatus === "picked up and on_the_way") {
+            setStep(1)
+        }
+    }, [orderStatus])
 
     return (
         <>
@@ -118,35 +144,35 @@ const OrderDetailsForDelivaryBoy = () => {
                         <h1 className='font-bold mb-5 text-2xl text-[#ff4d2d]'>Orderer's Detail</h1>
 
                         <div className='flex flex-col'>
-                            <img src={orderDetails.orderedBy?.image || "/default-avatar.png"} alt="User" className="w-16 h-16 rounded-full object-cover mb-3 p-1 border-2 border-orange-500" />
+                            <img src={orderDetails?.orderedBy?.image || "/default-avatar.png"} alt="User" className="w-16 h-16 rounded-full object-cover mb-3 p-1 border-2 border-orange-500" />
                         </div>
 
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>Name </div>
-                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.fullname || "null"}</span>
+                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.fullname || "null"}</span>
                         </div>
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>Email </div>
-                            <span className='mb-3  font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.email || "null"}</span>
+                            <span className='mb-3  font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.email || "null"}</span>
                         </div>
 
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>Phone </div>
-                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.phone || "null"}</span>
+                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.phone || "null"}</span>
                         </div>
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>Address</div>
-                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.address || "null"}</span>
+                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.address || "null"}</span>
                         </div>
 
                         <div className='flex flex-row gap-10'>
                             <div className='flex flex-col'>
                                 <div className='text-gray-800 font-semibold text-[16px] '>Longitude</div>
-                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.location.coordinates[0] || "null"}</span>
+                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.location.coordinates[0] || "null"}</span>
                             </div>
                             <div className='flex flex-col'>
                                 <div className='text-gray-800 font-semibold text-[16px] '>Latitude</div>
-                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.location.coordinates[1] || "null"}</span>
+                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.location.coordinates[1] || "null"}</span>
                             </div>
                         </div>
 
@@ -160,28 +186,28 @@ const OrderDetailsForDelivaryBoy = () => {
 
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>Shop Name</div>
-                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.shopDetails?.shopname || "null"}</span>
+                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.shopDetails?.shopname || "null"}</span>
                         </div>
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>Email</div>
-                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.shopDetails?.email || "null"}</span>
+                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.shopDetails?.email || "null"}</span>
                         </div>
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>phone</div>
-                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.shopDetails?.phone || "null"}</span>
+                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.shopDetails?.phone || "null"}</span>
                         </div>
                         <div className='flex flex-col'>
                             <div className='text-gray-800 font-semibold text-[16px] '>Location</div>
-                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.shopDetails?.location || "null"}</span>
+                            <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.shopDetails?.location || "null"}</span>
                         </div>
                         <div className='flex gap-10'>
                             <div className='flex flex-col'>
                                 <div className='text-gray-800 font-semibold text-[16px] '>Longitude</div>
-                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.location?.coordinates[0] || "null"}</span>
+                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.location?.coordinates[0] || "null"}</span>
                             </div>
                             <div className='flex flex-col mb-5'>
                                 <div className='text-gray-800 font-semibold text-[16px] '>Latitude</div>
-                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails.orderedBy?.location?.coordinates[1] || "null"}</span>
+                                <span className='mb-3 font-normal text-sm text-gray-600'>{orderDetails?.orderedBy?.location?.coordinates[1] || "null"}</span>
                             </div>
                         </div>
                     </div>
@@ -190,7 +216,7 @@ const OrderDetailsForDelivaryBoy = () => {
                 {/* Right side */}
                 <div className="h-full lg:w-fit flex flex-col border-t-2 lg:border-none">
 
-                    <h1 className="lg:ml-3 ml-1 font-bold mb-3 text-4xl text-[#ff4d2d] mt-5 lg:mt-0">  {orderDetails.shopDetails?.shopname || "null"} </h1>
+                    <h1 className="lg:ml-3 ml-1 font-bold mb-3 text-4xl text-[#ff4d2d] mt-5 lg:mt-0">  {orderDetails?.shopDetails?.shopname || "null"} </h1>
 
                     <h1 className="lg:ml-4 font-bold mb-5 text-2xl text-black/60 ml-1"> Food Detail's </h1>
 
@@ -246,6 +272,16 @@ const OrderDetailsForDelivaryBoy = () => {
                         </div>
 
 
+                        {/* Order status set to order picked up and on the way */}
+                        {step === 0 &&
+                            <div className="mt-10 lg:mt-20 ml-0 lg:ml-2 w-full lg:w-100 border p-4 rounded-lg">
+                                <button onClick={() => {
+                                    // setStep(1)
+                                    changeOrderStatus(orderDetails?.orderGroupId)
+                                }} className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md font-semibold active:scale-98 cursor-pointer">Order picked up and on the way</button>
+                            </div>
+                        }
+
                         {/* Send delivery OTP */}
                         {step === 1 && (
                             <div className="mt-10 lg:mt-20 ml-0 lg:ml-2 w-full lg:w-100 border p-4 rounded-lg">
@@ -253,6 +289,7 @@ const OrderDetailsForDelivaryBoy = () => {
                             </div>
                         )}
 
+                        {/* verify the delivary otp */}
                         {step === 2 && (
                             <div className="mt-10 lg:mt-20 w-full lg:w-100 border py-2 px-3 rounded-lg flex flex-col lg:flex-row gap-3">
                                 <input value={otp} onChange={(e) => setOtp(e.target.value)} type="text" placeholder="Enter Delivery OTP" className="w-full lg:w-75 border px-3 py-2.5 rounded-md focus:ring focus:ring-orange-500 outline-none" />
@@ -260,8 +297,7 @@ const OrderDetailsForDelivaryBoy = () => {
                             </div>
                         )}
 
-
-
+                        {/* Order payment status update to be paid for COD order */}
                         {step === 3 && orderDetails?.order?.map((item) => item?.paymentMethod)[0] === "cod" && orderDetails?.paymentStatus !== "paid" && (
                             <div className='flex flex-col w-full lg:w-100 mt-10 lg:mt-20 border p-4 rounded-lg'>
                                 <span className='font-semibold pb-2'>Update customer payment status</span>
@@ -270,8 +306,7 @@ const OrderDetailsForDelivaryBoy = () => {
                                         <button
                                             key={s}
                                             onClick={() => updatePaymentStatus(s)}
-                                            className={`mt-2 text-xs sm:text-sm font-normal px-4 py-1 rounded-md border transition cursor-pointer ${orderDetails?.paymentStatus === s ? "bg-[#ff4d2d] text-white border-[#ff4d2d]" : "bg-gray-100 hover:bg-gray-200"
-                                                }`}
+                                            className={`mt-2 text-xs sm:text-sm font-normal px-4 py-1 rounded-md border transition cursor-pointer ${orderDetails?.paymentStatus === s ? "bg-[#ff4d2d] text-white border-[#ff4d2d]" : "bg-gray-100 hover:bg-gray-200"}`}
                                         >
                                             {s}
                                         </button>
@@ -280,6 +315,7 @@ const OrderDetailsForDelivaryBoy = () => {
                             </div>
                         )}
 
+                        {/* Order status set to compleate for ONLINE order */}
                         {step === 4 && (
                             <div className='flex flex-col w-full lg:w-100 mt-10 lg:mt-20 border p-4 rounded-lg'>
                                 <span className='font-semibold pb-2'>Update delivary status to complete</span>

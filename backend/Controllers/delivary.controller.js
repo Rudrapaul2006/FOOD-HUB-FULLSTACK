@@ -204,6 +204,70 @@ export let acceptedOrderByDelivaryBoy = async (req, res) => {
     }
 }
 
+// get his accepted order and change's it's order status : [out for delivary => picked up and on the way]
+export let changeAcceptedOrderStatus = async (req, res) => {
+    try {
+        let userId = req.id
+        let { groupOrderId } = req.body
+
+        await ORDER.updateMany(
+            { orderGroupId: groupOrderId },
+            { $set: { orderStatus: "picked up and on_the_way" }}
+        )
+
+        let findAcceptedOrder = await ORDER.find({ assignedDelivaryBoy: userId, orderGroupId: groupOrderId })
+            .populate("orderedBy", "fullname email phone address location socketId available image")
+            .populate("shopDetails", "shopname email city phone location state shopGeoLocation owner")
+            .populate("foodDetails", "foodname price category description foodtype")
+            .populate({ path: "shopDetails", populate: { path: "owner", select: "_id fullname socketId available" } })
+
+
+        if (!findAcceptedOrder) {
+            return res.status(400).json({
+                message: "Order not found",
+                success: false
+            })
+        }
+
+        let io = req.app.get("io")
+        let orderGroupId = findAcceptedOrder?.[0]?.orderGroupId?.toString()
+
+        if (io) {
+            let shopOwnerSocketId = findAcceptedOrder?.[0]?.shopDetails?.owner?.socketId
+            let userSocketId = findAcceptedOrder?.[0]?.orderedBy?.socketId
+
+            if (shopOwnerSocketId) {
+                io.to(shopOwnerSocketId).emit("orderStatus", {
+                    orderGroupId: orderGroupId,
+                    _id: findAcceptedOrder?.[0]?.id,
+                    orderStatus: findAcceptedOrder?.[0]?.orderStatus,
+                    paymentStatus: findAcceptedOrder?.[0]?.paymentStatus,
+                })
+            }
+            if (userSocketId) {
+                io.to(userSocketId).emit("userOrderStatus", {
+                    orderGroupId: orderGroupId,
+                    _id: findAcceptedOrder?.[0]?.id,
+                    orderStatus: findAcceptedOrder?.[0]?.orderStatus,
+                    paymentStatus: findAcceptedOrder?.[0]?.paymentStatus
+                })
+            }
+        }
+
+        return res.status(200).json({
+            message: "Order status updated",
+            success: true
+        })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Server error",
+            success: false
+        })
+    }
+}
+
 //Delivary order status update [for cod order's payment status update] :
 export let delivayPaymentStatus = async (req, res) => {
     try {
@@ -235,7 +299,7 @@ export let delivayPaymentStatus = async (req, res) => {
         order.paymentStatus = paymentStatus
         order.status = "compleate"
 
-        await order.save() 
+        await order.save()
 
         // Order delivary message to user email :
         let ordererName = order?.orderedBy?.fullname
@@ -249,14 +313,16 @@ export let delivayPaymentStatus = async (req, res) => {
 
         //Shop Order compleate and order payment status updated true :
         let shopOrder = await ORDER.updateMany(
-            {orderGroupId : groupId},
-            {$set: {
-                orderStatus: "compleate",
-                payment: true
-            }}
+            { orderGroupId: groupId },
+            {
+                $set: {
+                    orderStatus: "compleate",
+                    payment: true
+                }
+            }
         )
 
-        await orderDelivaryMessage(ordererEmail, shopName , ordererName, foodDetails, payment, paymentMethod, totalPrice)
+        await orderDelivaryMessage(ordererEmail, shopName, ordererName, foodDetails, payment, paymentMethod, totalPrice)
 
         // Emit socket events
         let io = req.app.get("io")
@@ -348,6 +414,7 @@ export let delivaryStatusUpdate = async (req, res) => {
                         paymentStatus: order.paymentStatus,
                     })
                 }
+
                 if (userSocketId) {
                     io.to(userSocketId).emit("userOrderStatus", {
                         orderGroupId,
@@ -368,14 +435,16 @@ export let delivaryStatusUpdate = async (req, res) => {
             let groupId = order?.order?.[0]?.orderGroupId
 
             await ORDER.updateMany(
-                {orderGroupId : groupId},
-                {$set: {
-                    orderStatus: "compleate",
-                    payment: true
-                }}
+                { orderGroupId: groupId },
+                {
+                    $set: {
+                        orderStatus: "compleate",
+                        payment: true
+                    }
+                }
             )
-            
-            await orderDelivaryMessage(ordererEmail, shopName , ordererName, foodDetails, payment, paymentMethod, totalPrice)
+
+            await orderDelivaryMessage(ordererEmail, shopName, ordererName, foodDetails, payment, paymentMethod, totalPrice)
 
 
             return res.status(200).json({
@@ -447,6 +516,13 @@ export let verifyDelivaryOtp = async (req, res) => {
     try {
         let groupId = req.params.id;
         let { delivaryOtp } = req.body;
+
+        if (delivaryOtp.length === 0 ){
+            res.status(400).json({
+                message : "Please provide the delivary OTP",
+                success : false
+            })
+        }
 
         let order = await ORDER.find({ orderGroupId: groupId.toString() }).populate("orderedBy", "fullname email phone address location");
 
