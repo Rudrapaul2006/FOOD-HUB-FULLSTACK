@@ -39,6 +39,7 @@ import { useSelector } from 'react-redux';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import SignUp from './Project_Pages_Service/Auth/SignUp';
 import OrderSigleCardItem from './Project_Pages_Service/User pages/OrderSigleCardItem';
+import DelivaryMap from './Project_Pages_Service/Delivary boy/Pages/DelivaryMap';
 
 const App = () => {
   //All children and parent components can use or access this data :
@@ -90,6 +91,8 @@ const App = () => {
         <Route path='/delivaryOrderDetails/:id' element={userData ? <OrderDetailsForDelivaryBoy /> : <Navigate to={"/signin"} />} />
         <Route path='/delivarypartnerprofile' element={userData ? <DelivaryPartnerProfile/> : <Navigate to={"/signin"} />} />
         <Route path='/updatedelivarypartnerprofile' element={userData ? <UpdateDelivaryPartnerProfile/> : <Navigate to={"/signin"} />} />
+        <Route path='/delivarymap/:id' element={userData ? <DelivaryMap/> : <Navigate to={"/signin"} />} />
+        
 
         {/* User Side Routes */}
         <Route path='/userprofile' element={userData ? <UserProfile /> : <Navigate to={"/signin"} />} />

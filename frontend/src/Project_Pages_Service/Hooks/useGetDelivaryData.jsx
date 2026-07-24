@@ -24,7 +24,7 @@ const useGetDelivaryData = () => {
                     dispatch(setDelivaryData(res.data.shopOrder))                    
                 }
             } catch (error) {
-                dispatch(setDelivaryData([]))
+                console.log(error)
             } finally {
                 dispatch(setDelivaryloading(false))
             }

@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from 'react'
+import React, { use, useEffect, useRef, useState } from 'react'
 import DelivaryBoyNav from './DelivaryBoyNav'
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -7,9 +7,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import useGetDelivaryData from '@/Project_Pages_Service/Hooks/useGetDelivaryData';
 import { updateOrderPaymentStatus } from '@/Project_Pages_Service/Redux/delivarySlice';
 import UseUpdateCurrentPosition from '@/Project_Pages_Service/Hooks/UseUpdateCurrentPosition';
+import { FaMapMarkerAlt } from 'react-icons/fa';
 
 
-const OrderDetailsForDelivaryBoy = () => {
+let OrderDetailsForDelivaryBoy = () => {
     useGetDelivaryData()
     UseUpdateCurrentPosition()
 
@@ -270,11 +271,19 @@ const OrderDetailsForDelivaryBoy = () => {
                                 </div>
                             </div>
                         </div>
-
+                        
+                        {/* Open map button */}
+                        <button
+                            onClick={() => navigate(`/delivarymap/${assignmentId}`) }
+                            className='mt-8 flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 active:scale-98 transition-all duration-200 cursor-pointer'
+                        >
+                            <FaMapMarkerAlt size={17} />
+                            Map
+                        </button>
 
                         {/* Order status set to order picked up and on the way */}
                         {step === 0 &&
-                            <div className="mt-10 lg:mt-20 ml-0 lg:ml-2 w-full lg:w-100 border p-4 rounded-lg">
+                            <div className="mt-10 ml-0 lg:ml-2 w-full lg:w-100 border p-4 rounded-lg">
                                 <button onClick={() => {
                                     // setStep(1)
                                     changeOrderStatus(orderDetails?.orderGroupId)
@@ -284,14 +293,14 @@ const OrderDetailsForDelivaryBoy = () => {
 
                         {/* Send delivery OTP */}
                         {step === 1 && (
-                            <div className="mt-10 lg:mt-20 ml-0 lg:ml-2 w-full lg:w-100 border p-4 rounded-lg">
+                            <div className="mt-10 ml-0 lg:ml-2 w-full lg:w-100 border p-4 rounded-lg">
                                 <button onClick={sendDelivaryotp} className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md font-semibold active:scale-98 cursor-pointer">Send Delivery OTP</button>
                             </div>
                         )}
 
                         {/* verify the delivary otp */}
                         {step === 2 && (
-                            <div className="mt-10 lg:mt-20 w-full lg:w-100 border py-2 px-3 rounded-lg flex flex-col lg:flex-row gap-3">
+                            <div className="mt-10 w-full lg:w-100 border py-2 px-3 rounded-lg flex flex-col lg:flex-row gap-3">
                                 <input value={otp} onChange={(e) => setOtp(e.target.value)} type="text" placeholder="Enter Delivery OTP" className="w-full lg:w-75 border px-3 py-2.5 rounded-md focus:ring focus:ring-orange-500 outline-none" />
                                 <button onClick={verifyDelivaryotp} className="w-full lg:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-md font-semibold active:scale-98 cursor-pointer">Verify OTP</button>
                             </div>
@@ -299,7 +308,7 @@ const OrderDetailsForDelivaryBoy = () => {
 
                         {/* Order payment status update to be paid for COD order */}
                         {step === 3 && orderDetails?.order?.map((item) => item?.paymentMethod)[0] === "cod" && orderDetails?.paymentStatus !== "paid" && (
-                            <div className='flex flex-col w-full lg:w-100 mt-10 lg:mt-20 border p-4 rounded-lg'>
+                            <div className='flex flex-col w-full lg:w-100 mt-10 border p-4 rounded-lg'>
                                 <span className='font-semibold pb-2'>Update customer payment status</span>
                                 <div className="flex flex-wrap gap-3">
                                     {["paid"].map((s) => (
@@ -317,7 +326,7 @@ const OrderDetailsForDelivaryBoy = () => {
 
                         {/* Order status set to compleate for ONLINE order */}
                         {step === 4 && (
-                            <div className='flex flex-col w-full lg:w-100 mt-10 lg:mt-20 border p-4 rounded-lg'>
+                            <div className='flex flex-col w-full lg:w-100 mt-10 border p-4 rounded-lg'>
                                 <span className='font-semibold pb-2'>Update delivary status to complete</span>
                                 <div className="flex flex-wrap gap-3">
                                     {["compleate"].map((s) => (
