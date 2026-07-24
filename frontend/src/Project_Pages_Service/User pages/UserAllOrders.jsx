@@ -7,6 +7,7 @@ import { replace, useNavigate } from 'react-router-dom';
 import { Loader2, User } from 'lucide-react';
 import { FaAngleLeft, FaAngleRight } from 'react-icons/fa6';
 import { setSearchUserOrderByText, setUserOrderData, setUserPendingOrderCurrentPage } from '../Redux/orderSlice';
+import { getSocket } from '../WebSocketHooks/connetSocket';
 
 const UserAllOrders = () => {
     getAllUserOrder()
@@ -14,11 +15,13 @@ const UserAllOrders = () => {
     let navigate = useNavigate()
     let dispatch = useDispatch()
     let { userOrderData, userOrderLoading, searchUserOrderByText, userPendingOrderTotalPages, userPendingOrderCurrentPage, userPendingOrderHasPrev, userPendingOrderHasNext } = useSelector(state => state.order)
-    let { socket } = useSelector(state => state.user)
+    let socket = getSocket()
 
 
     //Io geting user order status or groupId :
     useEffect(() => {
+        if (!socket) return
+        
         let handleOrderUpdate = (data) => {
             let updatedOrders = userOrderData.map(order =>
                 order.orderGroupId === data.orderGroupId

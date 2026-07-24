@@ -13,6 +13,7 @@ import multipleOrderSocket from '@/Project_Pages_Service/WebSocketHooks/multiple
 import useGetPendingOrders, { getPendingOrders } from '@/Project_Pages_Service/Hooks/useGetOrders'
 import { Loader2 } from 'lucide-react'
 import { updateShop } from '@/Project_Pages_Service/Redux/adminSlice'
+import { getSocket } from '@/Project_Pages_Service/WebSocketHooks/connetSocket'
 
 const UserOrders = () => {
   // useGetPendingOrders()
@@ -27,7 +28,7 @@ const UserOrders = () => {
   let dispatch = useDispatch()
   let { orderData } = useSelector(state => state.order)
   let { shopData } = useSelector(state => state.admin)
-  let { socket } = useSelector(state => state.user)
+  let socket = getSocket()
 
 
   //Update shop status [open or not open] :

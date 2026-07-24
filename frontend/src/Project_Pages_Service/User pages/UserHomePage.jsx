@@ -9,16 +9,19 @@ import getUserAllShops from '../User Hooks/getUserAllShops';
 import { IoIosSearch } from 'react-icons/io';
 import { setFindShopByText, setShopCurrentPage, setShopSortByUser, setUserShopData } from '../Redux/adminSlice';
 import { FaAngleLeft, FaAngleRight } from 'react-icons/fa6';
+import { getSocket } from '../WebSocketHooks/connetSocket';
 
 const UserHomePage = () => {
     let navigate = useNavigate()
     let dispatch = useDispatch()
 
     let { userShopData, userShopLoading, shopCurrentPage, shopTotalPage, shopHasNext, shopHasPrev, findShopByText, shopSortByUser } = useSelector(state => state.admin)
-    let { socket } = useSelector(state => state.user)
+    let socket = getSocket()
 
     //geting socket event for updating shopStatus
     useEffect(() => {
+        if(!socket) return 
+        
         let handleShopStatus = (data) => {
             dispatch(setUserShopData(userShopData.map(shop => shop._id === data.shopId
                 ? { ...shop, ...(data.open && { open: data.open }), ...(data.socketOpen && { socketOpen: data.socketOpen }) }

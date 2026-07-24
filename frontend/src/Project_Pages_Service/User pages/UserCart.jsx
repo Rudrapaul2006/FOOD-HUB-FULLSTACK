@@ -7,6 +7,7 @@ import { removeAllFoodFromCart, removeFoodFromCart, setCartData, updateQuantityI
 import axios from 'axios'
 import { toast } from 'sonner'
 import useGetAllCartItems from '../User Hooks/useGetAllCartItems'
+import { getSocket } from '../WebSocketHooks/connetSocket'
 
 const UserCart = () => {
     useGetAllCartItems()
@@ -16,7 +17,7 @@ const UserCart = () => {
 
 
     let { cartData } = useSelector(state => state.food)
-    let { socket } = useSelector(state => state.user)
+    let socket = getSocket()
 
     let price = cartData?.map(i => (i?.foodDetails?.price * i?.quantity))
     let totalPrice = price?.reduce((curr, penn) => curr + penn, 0)
@@ -62,6 +63,8 @@ const UserCart = () => {
 
     //shop status update when admin logout or close the website :
     useEffect(() => {
+        if (!socket) return
+        
         let handleData = (data) => {
             dispatch(
                 setCartData(

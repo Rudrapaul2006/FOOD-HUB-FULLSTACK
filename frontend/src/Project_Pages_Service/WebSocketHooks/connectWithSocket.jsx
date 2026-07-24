@@ -1,27 +1,21 @@
-import React, { useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { io } from 'socket.io-client'
-import { setSocket } from '../Redux/userSlice'
+import { useEffect } from 'react'
+import { useSelector } from 'react-redux'
+import { connectSocket, disconnectSocket } from './connetSocket'
 
 const connectWithSocket = () => {
 
-    let { userData, socket } = useSelector(state => state.user)
-    let dispatch = useDispatch()
+    let { userData } = useSelector(state => state.user)
+
 
     useEffect(() => {
     if (!userData) return;
 
-    let socketInstance = io(import.meta.env.VITE_serverUrl, { withCredentials: true })
+    connectSocket(userData?.user?._id)
 
-    dispatch(setSocket(socketInstance))
-
-    socketInstance.on("connect", () => {
-        socketInstance.emit("identity", { userId: userData?.user?._id })
-    })
-
-    return () => {
-        socketInstance.disconnect();
+     return () => {
+      disconnectSocket()
     }
+    
 }, [userData?.user?._id])
 }
 

@@ -16,10 +16,13 @@ import { setCartData, setFoodData } from '../Redux/foodSlice';
 import { setUserShopData } from '../Redux/adminSlice';
 import useGetAllCartItems from '../User Hooks/useGetAllCartItems';
 import { TbReorder } from 'react-icons/tb';
+import { disconnectSocket, getSocket } from '../WebSocketHooks/connetSocket';
 
 const UserNav = () => {
     useGetAllCartItems()
-    let { userData, city , socket } = useSelector((state) => state.user)
+
+    let socket = getSocket()
+    let { userData, city  } = useSelector((state) => state.user)
     let image = userData?.user?.image
 
 
@@ -34,7 +37,7 @@ const UserNav = () => {
                 toast.success(res.data.message);
                 dispatch(setUserData(null))
                 // dispatch(setFoodData(null))
-                socket.disconnect()
+                disconnectSocket()
                 dispatch(setUserShopData([]))
                 dispatch(setCartData([]))
                 navigate("/signin")

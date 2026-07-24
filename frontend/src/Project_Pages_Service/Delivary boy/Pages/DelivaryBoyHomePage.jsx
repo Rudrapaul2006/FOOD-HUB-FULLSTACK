@@ -8,6 +8,7 @@ import { setDelivaryData } from '@/Project_Pages_Service/Redux/delivarySlice'
 import useGetDelivaryData from '@/Project_Pages_Service/Hooks/useGetDelivaryData'
 import useGetCurrentUser from '@/Project_Pages_Service/Hooks/useGetCurrentUser'
 import UseUpdateCurrentPosition from '@/Project_Pages_Service/Hooks/UseUpdateCurrentPosition'
+import { getSocket } from '@/Project_Pages_Service/WebSocketHooks/connetSocket'
 
 const DelivaryBoyHomePage = () => {
     useGetDelivaryData()
@@ -20,7 +21,7 @@ const DelivaryBoyHomePage = () => {
     let { delivaryData } = useSelector(state => state.delivary)
 
     
-    let { socket } = useSelector(state => state.user)
+    let socket = getSocket()
 
     //Accept order :
     let acceptorder = async (orderId) => {
@@ -59,6 +60,8 @@ const DelivaryBoyHomePage = () => {
 
     // Get Io event [ get order from shop ] :
     useEffect(() => {
+        if (!socket) return 
+        
         socket.on("delivaryOrder", (data) => {
             if(data){
                 let audio = new Audio("/messageSound.mp3")

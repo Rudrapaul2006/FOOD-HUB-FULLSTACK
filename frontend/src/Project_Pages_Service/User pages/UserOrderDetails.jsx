@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { IoChevronBack } from 'react-icons/io5'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'sonner'
+import { getSocket } from '../WebSocketHooks/connetSocket'
 
 const UserOrderDetails = () => {
     let params = useParams()
@@ -12,7 +13,7 @@ const UserOrderDetails = () => {
     let navigate = useNavigate()
 
     let [orderData, setOrderData] = useState([])
-    let { socket } = useSelector(state => state.user)
+    let socket = getSocket()
     let [userOrderStatus, setUserOrderStatus] = useState([]) // socket data
     let [delivaryBoyData, setDelivaryBoyData] = useState(null) 
 
@@ -67,6 +68,8 @@ const UserOrderDetails = () => {
 
     //Io geting user order status or groupId :
     useEffect(() => {
+        if (!socket) return
+        
         socket.on("userOrderData", data => {
             setUserOrderStatus(data)
         })

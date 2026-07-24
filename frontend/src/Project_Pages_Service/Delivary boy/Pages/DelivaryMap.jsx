@@ -9,6 +9,7 @@ import L, { icon } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-routing-machine'
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css'
+import { getSocket } from '@/Project_Pages_Service/WebSocketHooks/connetSocket'
 
 let shopIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448609.png',
@@ -80,7 +81,7 @@ const DelivaryMap = () => {
   let assignmentId = params.id
   let navigate = useNavigate()
 
-  // let {socket} = useSelector(state => state.user)
+  let socket = getSocket()
   // // console.log(socket)
   
 
@@ -128,7 +129,6 @@ const DelivaryMap = () => {
 
         console.log(lat , lon);
         
-
         // socket.emit("delivaryBoyLiveLocation" , {
         //   latitude : lat,
         //   longitude : lon,

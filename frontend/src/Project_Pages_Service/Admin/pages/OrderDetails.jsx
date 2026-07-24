@@ -4,12 +4,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IoIosArrowBack } from 'react-icons/io';
 import { data, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { deleteOrderItem, updateorder } from '@/Project_Pages_Service/Redux/orderSlice';
+import { updateorder } from '@/Project_Pages_Service/Redux/orderSlice';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import singleOrderSocket from '@/Project_Pages_Service/WebSocketHooks/singleOrderSocket';
 import multipleOrderSocket from '@/Project_Pages_Service/WebSocketHooks/multipleOrderSocket';
 import { getPendingOrders } from '@/Project_Pages_Service/Hooks/useGetOrders';
+import { getSocket } from '@/Project_Pages_Service/WebSocketHooks/connetSocket';
 
 const OrderDetails = () => {
   //socket function for the [for the single order]
@@ -21,9 +22,10 @@ const OrderDetails = () => {
   let dispatch = useDispatch()
   let params = useParams()
   let groupId = params.id
+  let socket = getSocket()
 
   let { shopData } = useSelector(state => state.admin)
-  let { socket } = useSelector(state => state.user)
+  
 
   let [orderDetails, setOrderDetails] = useState([])
   let [OrderStatus, setIoOrderStatus] = useState([])  //[used in socketIo event on orderStatus update] 

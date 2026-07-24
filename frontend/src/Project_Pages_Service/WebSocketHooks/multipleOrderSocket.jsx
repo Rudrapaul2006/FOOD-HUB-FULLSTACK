@@ -2,10 +2,11 @@ import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'sonner'
 import { getPendingOrders } from '../Hooks/useGetOrders'
+import { getSocket } from './connetSocket'
 
 const multipleOrderSocket = () => {
     let dispatch = useDispatch()
-    let {  socket } = useSelector(state => state.user)
+    let socket = getSocket()
     let { currentPage } = useSelector(state => state.order)
 
     useEffect(() => {
