@@ -100,7 +100,7 @@ const UserCart = () => {
             <div className=" flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 lg:mx-60 mt-25 lg:mt-30">
                 <div className='flex flex-row items-center gap-3'>
                     <button onClick={() => navigate(-1)}
-                        className=" ml-4 lg:ml-0 flex items-center justify-center w-9 h-9 border border-gray-200 bg-gray-100 rounded-lg hover:bg-gray-200 transition cursor-pointer"
+                        className="mt-3 ml-4 lg:ml-0 flex items-center justify-center w-9 h-9 border border-gray-200 bg-gray-100 rounded-lg hover:bg-gray-200 transition cursor-pointer"
                     >
                         <IoChevronBack size={20} />
                     </button>

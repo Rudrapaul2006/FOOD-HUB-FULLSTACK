@@ -4,9 +4,10 @@ import { MdOutlineShoppingCart } from 'react-icons/md';
 import { FaAngleLeft, FaAngleRight } from 'react-icons/fa6';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { addFoodInCart, setResturentFoodCurrentPage } from '../Redux/foodSlice';
+import { addFoodInCart, replaceFoodInCart, setResturentFoodCurrentPage } from '../Redux/foodSlice';
 import useGetAllCartItems from '../User Hooks/useGetAllCartItems';
 import { Loader2 } from 'lucide-react';
+import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@radix-ui/react-popover';
 
 const UserFoodItem = () => {
     useGetAllCartItems()
@@ -30,6 +31,21 @@ const UserFoodItem = () => {
         }
     }
 
+    // Replace the cart foods with another shop food item's :
+    let foodReplace = async (foodId, shopId) => {
+        try {
+            let res = await axios.post(`${import.meta.env.VITE_cart_endpoint}/replaceitem`, { shopId: shopId, foodId: foodId }, { withCredentials: true })
+
+            if (res.data.success) {
+                dispatch(replaceFoodInCart(res.data.cartData))
+                toast.success(res.data.message || "Replace successfully")
+            }
+        } catch (error) {
+            console.log(error);
+            toast.error(error?.response?.data?.message || "Something wrong")
+        }
+    }
+
     //Cart Data :
     let { cartData } = useSelector(state => state.food)
 
@@ -41,13 +57,14 @@ const UserFoodItem = () => {
             {/* Food card  */}
             <div className='relative'>
                 <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 lg:gap-15 lg:h-fit ml-2 mr-2 lg:mr-0 lg:ml-0 mb-25 ${userFoodLoading ? "blur-sm opacity-50 pointer-events-none" : ""}`}>
-                    {userFoodData.length > 0 ? userFoodData?.map((item) => {
+                    {userFoodData?.length > 0 ? userFoodData?.map((item) => {
 
-                        let isInCart = cartData.some(i => i?.foodDetails?._id === item?._id || i?.foodDetails === item?._id)
+                        let isInCart = cartData?.some(i => (i?.foodDetails?._id || i?.foodDetails) === item?._id)
+                        let isAnotherShopInCart = cartData?.length > 0 && cartData[0]?.shopDetails?._id !== item?.shopDetails?._id[0]
 
                         return (
-                            <div key={item._id} className='border border-gray-200 rounded-lg flex flex-col'>
-                                <div className='relative'>
+                            <div key={item?._id} className='border border-gray-200 rounded-lg flex flex-col'>
+                                <div key={item?._id} className='relative'>
                                     <img
                                         src={item?.image}
                                         alt={item?.foodname}
@@ -55,17 +72,59 @@ const UserFoodItem = () => {
                                     />
 
                                     <div className='flex justify-between'>
-                                        <div className='mt-1 ml-2'>
-                                            <button
-                                                onClick={() => addFoodToCart(item?._id)}
-                                                className={`flex items-center justify-center gap-2 px-3 py-1 rounded-lg border transition-all duration-200 ${isInCart
-                                                    ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
-                                                    : "bg-white text-gray-800 border-gray-300 cursor-pointer"}`}
-                                            >
-                                                <MdOutlineShoppingCart className='mt-1' />
-                                                {isInCart ? <span className='text-sm font-medium text-gray-500'>Added</span> :
-                                                    <span className='text-sm font-medium text-gray-800'>Add to Cart</span>}
-                                            </button>
+                                        <div className='flex items-center justify-center gap-2 px-3 py-1'>
+                                            <MdOutlineShoppingCart className='mt-1' />
+
+                                            {
+                                                isInCart ? (
+                                                    <span className='flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-300 bg-gray-200 text-gray-500 text-sm font-medium cursor-not-allowed'>
+                                                        Added
+                                                    </span>
+                                                ) : !isAnotherShopInCart ? (
+                                                    <span
+                                                        onClick={() => addFoodToCart(item?._id)}
+                                                        className='px-3 py-1 rounded-lg border border-gray-300 bg-white text-gray-800 text-sm font-medium cursor-pointer transition-all duration-200 hover:bg-gray-50'
+                                                    >
+                                                        Add To Cart
+                                                    </span>
+                                                ) : (
+                                                    <Popover>
+                                                        <PopoverTrigger>
+                                                            <span className="px-3 py-1 rounded-lg border border-gray-300 bg-white text-gray-800 text-sm font-medium cursor-pointer transition-all duration-200 hover:bg-gray-50">
+                                                                Add To Cart
+                                                            </span>
+                                                        </PopoverTrigger>
+
+                                                        <PopoverContent className="mt-1 w-72 bg-white border border-gray-200 shadow-lg rounded-lg p-4 z-50">
+                                                            <div className="space-y-4">
+                                                                <div>
+                                                                    <h4 className="text-base font-semibold text-gray-900">
+                                                                        Replace Item ?
+                                                                    </h4>
+                                                                    <p className="text-sm text-gray-600 mt-1">
+                                                                        Cart contains items from another shop. Replace them ?
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className="flex justify-end gap-2">
+                                                                    <PopoverClose asChild>
+                                                                        <button className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-100 cursor-pointer">
+                                                                            Cancel
+                                                                        </button>
+                                                                    </PopoverClose>
+
+                                                                    <button
+                                                                        onClick={() => foodReplace(item?._id, item?.shopDetails?._id)}
+                                                                        className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+                                                                    >
+                                                                        Replace
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                )
+                                            }
                                         </div>
                                     </div>
                                 </div>

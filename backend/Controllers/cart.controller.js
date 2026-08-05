@@ -30,7 +30,7 @@ export let addToCart = async (req, res) => {
 
         let userCart = await CART.findOne({ userDetails: userId })
 
-        if (!userCart || userCart.shopDetails._id.toString() === shopId.toString()) {
+        if (!userCart || userCart?.shopDetails?._id.toString() === shopId.toString()) {
 
             let cartData = await CART.create({
                 userDetails: userId,
@@ -57,7 +57,7 @@ export let addToCart = async (req, res) => {
 
         } else {
             return res.status(400).json({
-                message: "Cart contains items from another restaurant . Please clear it first.",
+                message: "Cart contains items from another restaurant . Please clear it first",
                 success: false
             })
         }
@@ -77,16 +77,16 @@ export let getCartFoodData = async (req, res) => {
         let userId = req.id;
 
         let getFoodItem = await CART.find({ userDetails: userId }).sort({ createdAt: -1 })
-        .populate("foodDetails", "foodname price category description isAvailable image")
-        .populate("userDetails", "_id fullname")
-        .populate("shopDetails")
-        .populate({
-            path : "shopDetails",
-            populate : {
-                path : "owner",
-                select : "fullname socketId available"
-            }
-        })
+            .populate("foodDetails", "foodname price category description isAvailable image")
+            .populate("userDetails", "_id fullname")
+            .populate("shopDetails")
+            .populate({
+                path: "shopDetails",
+                populate: {
+                    path: "owner",
+                    select: "fullname socketId available"
+                }
+            })
 
         if (!getFoodItem) {
             return res.status(400).json({
@@ -94,12 +94,12 @@ export let getCartFoodData = async (req, res) => {
                 success: false
             })
         }
-        
+
         return res.status(200).json({
             message: "Successfully get the food items ",
-            getFoodItem, 
-            success: true       
-        }) 
+            getFoodItem,
+            success: true
+        })
 
     } catch (error) {
         console.log(error);
@@ -200,6 +200,63 @@ export let deleteAllFoodFromCart = async (req, res) => {
             message: "All food items removed successfully",
             success: true
         })
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: "Internal server error",
+            success: false
+        })
+    }
+}
+
+//Replace all cart item by user id :
+export let replaceFoodInCart = async (req, res) => {
+    try {
+        let userId = req.id
+        let { foodId } = req.body
+        let { shopId } = req.body
+
+        let user = await USER.findById(userId)
+        if (!user) {
+            return res.status(400).json({
+                message: "User not found",
+                success: false
+            })
+        }
+
+        let userCart = await CART.find({ userDetails: userId })
+
+        if (userCart.length > 0) {
+            await CART.deleteMany({ userDetails: userId })
+        }
+
+        if (shopId !== userCart?.map(item => item.shopDetails?._id.toString())[0]) {
+            let cartData = await CART.create({
+                userDetails: userId,
+                foodDetails: foodId,
+                shopDetails: shopId,
+                quantity: 1
+            })
+
+
+            if (!cartData) {
+                return res.status(400).json({
+                    message: "Failed to add in cart",
+                    success: false
+                })
+            }
+
+            await cartData.populate("foodDetails")
+            await cartData.populate("userDetails")
+            await cartData.populate("shopDetails")
+
+            return res.status(200).json({
+                message: "Cart replaced successfully",
+                cartData,
+                success: true
+            })
+        }
 
     } catch (error) {
         console.log(error);

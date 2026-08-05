@@ -53,6 +53,8 @@ const UserOrders = () => {
 
   //Io event to get the order paymentStatus and  orderStatus :
   useEffect(() => {
+    if(!socket) return
+    
     let handelData = (data) => {
       let handelDispatch = orderData.map(i => (
         i?.items?.[0]?.orderGroupId === data.orderGroupId ? {

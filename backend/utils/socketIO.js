@@ -1,5 +1,7 @@
 import { USER } from "../Models/user.model.js"
 import { SHOP } from "../Models/shop.model.js"
+import { ORDER } from "../Models/order.model.js"
+import { DELIVARY } from "../Models/delivary.model.js"
 
 export let socketIO = (io) => {
     io.on("connection", (socket) => {
@@ -33,6 +35,28 @@ export let socketIO = (io) => {
             }
         })
 
+        // Connect the specific user and delivery boy to the same Socket.IO room using their shared assignment ID
+        socket.on("joinAssignmentRoom", (assignmentId) => {
+            if (!assignmentId) return
+
+            socket.join(assignmentId)
+            console.log(`Socket ${socket.id} joined room: ${assignmentId}`)
+        })
+
+        // Delivary Boy live location fetch and send to room user :
+        socket.on("delivaryBoyLiveLocation", (data) => {
+            if (!data?.assignmentId) return
+
+            socket.to(data.assignmentId).emit("delivaryBoyLocation", {
+                latitude: data?.latitude,
+                longitude: data?.longitude,
+                delivaryBoyId: data?.delivaryBoyId,
+                assignmentId: data?.assignmentId,
+                delivaryBoyName: data?.delivaryBoyName,
+                delivaryBoyPhone: data?.delivaryBoyPhone
+            })
+        })
+
         socket.on("disconnect", async () => {
             try {
                 setTimeout(async () => {
@@ -62,7 +86,7 @@ export let socketIO = (io) => {
             } catch (error) {
                 console.log(error);
             }
-        });
+        })
 
     })
 }   

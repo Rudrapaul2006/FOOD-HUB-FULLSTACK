@@ -31,7 +31,7 @@ let RoutingContrtoll = ({ shopCoords, delivaryBoyCoords }) => {
 
     let routeControl = L.routing.control({
       waypoints: [
-        L.latLng(delivaryBoyCoords[1], delivaryBoyCoords[0]),
+        L.latLng(delivaryBoyCoords[0], delivaryBoyCoords[1]),
         L.latLng(shopCoords[1], shopCoords[0])
       ],
       lineOptions: {
@@ -44,11 +44,10 @@ let RoutingContrtoll = ({ shopCoords, delivaryBoyCoords }) => {
       fitSelectedRoutes: true,
       marker: () => null,
 
-      createMarker: (i, wp) =>
-        L.marker(wp.latLng, {
-          icon: i === 0 ? riderIcon : shopIcon,
-        })
-
+      createMarker: (i, wp) => {
+        if (i === 0) return null
+        return L.marker(wp.latLng, { icon: shopIcon })
+      }
     }).addTo(map)
 
     RouteControlRef.current = routeControl
@@ -69,6 +68,7 @@ let MapCentarize = ({ center }) => {
   let map = useMap()
 
   useEffect(() => {
+    if (!center || center.length !== 2) return
     map.setView(center, 16)
   }, [center, map])
 
@@ -82,8 +82,6 @@ const DelivaryMap = () => {
   let navigate = useNavigate()
 
   let socket = getSocket()
-  // // console.log(socket)
-  
 
   let [orderDetails, setOrderDetails] = useState('')
   let [loading, setLoading] = useState(false)
@@ -113,42 +111,51 @@ const DelivaryMap = () => {
   let { userData } = useSelector((state) => state.user)
 
   let shopCoords = orderDetails?.shopDetails?.shopGeoLocation?.coordinates
-  // let shopCoords =  [ 88.37908645353211 , 22.677142512912074]
-  let delivaryBoyCoords = userData?.user?.location?.coordinates
+  let [delivaryBoyCoords, setDelivaryBoyCoords] = useState([]) 
 
   // for map centralization :
   let defaultCenter = [22.5726, 88.3639]
-  let mapCenter = delivaryBoyCoords ? [delivaryBoyCoords[1], delivaryBoyCoords[0]] : defaultCenter
+  let mapCenter = delivaryBoyCoords.length ? delivaryBoyCoords : defaultCenter
 
-  // // Send live location to user :
+  // Send live location to user :
   useEffect(() => {
-    
-      let watchLocation = navigator.geolocation.watchPosition(position => {
-        let lat = position.coords.latitude
-        let lon = position.coords.longitude
+    if (!socket || !assignmentId) return
 
-        console.log(lat , lon);
-        
-        // socket.emit("delivaryBoyLiveLocation" , {
-        //   latitude : lat,
-        //   longitude : lon,
-        //   id : userData.user._id,
-        //   assignmentId : assignmentId
-        // })
-        
+    // Create a Socket.IO room for the delivery boy and user using the same assignment ID
+    socket.emit("joinAssignmentRoom", assignmentId)
+
+    let watchLocation = navigator.geolocation.watchPosition(position => {
+      let lat = position.coords.latitude
+      let lon = position.coords.longitude
+
+      setDelivaryBoyCoords([lat, lon])
+
+      socket.emit("delivaryBoyLiveLocation", {
+        latitude: lat,
+        longitude: lon,
+        delivaryBoyId: userData.user._id,
+        delivaryBoyName: userData.user.fullname,
+        delivaryBoyPhone: userData?.user?.phone,
+        assignmentId: assignmentId
       })
 
-      return () => {
-        navigator.geolocation.clearWatch(watchLocation)
-      }
-    
-  }, [])
+    }, (err) => console.log(err), {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 15000
+    })
+
+    return () => {
+      navigator.geolocation.clearWatch(watchLocation)
+    }
+
+  }, [socket, assignmentId])
 
   return (
     <div className="relative h-screen w-full">
       <button
         onClick={() => navigate(-1)}
-        className="absolute top-20 left-2 z-[1000] bg-white px-4 py-2 rounded-md shadow-md active:scale-97 duration-200 cursor-pointer"
+        className="absolute top-20 left-2 z-1000 bg-white px-4 py-2 rounded-md shadow-md active:scale-97 duration-200 cursor-pointer"
       > ← Back </button>
 
       <MapContainer
@@ -167,12 +174,10 @@ const DelivaryMap = () => {
           />
         )}
 
-        {delivaryBoyCoords && (
+        {/* rider ka single, smooth-moving marker — yahi source of truth hai */}
+        {delivaryBoyCoords.length > 0 && (
           <Marker
-            position={[
-              delivaryBoyCoords[1],
-              delivaryBoyCoords[0],
-            ]}
+            position={delivaryBoyCoords}
             icon={riderIcon}
           />
         )}

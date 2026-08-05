@@ -1,4 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit"
+import { log } from "firebase/firestore/pipelines"
+import { replace } from "react-router-dom"
 
 let foodSlice = createSlice({
     name: "food",
@@ -170,6 +172,9 @@ let foodSlice = createSlice({
             state.cartData = state.cartData.map(item =>
                 item._id === action.payload._id ? { ...item, quantity: action.payload.quantity } : item
             )
+        },
+        replaceFoodInCart: (state, action) => {
+            state.cartData = [action.payload]
         }
     })
 })
@@ -177,7 +182,7 @@ let foodSlice = createSlice({
 
 export let { setFoodData, setTotalAdminShopFood, setFoodLoading, deleteFood, addFood, updateFood, setSearchFoodByText, setTotalPages, setCurrentPage, setHasNext, setHasPrev,  //Admin side
     setUserFoodData, setSearchUserFoodByText, setUserFoodLoading, setUserFoodSorting, setResturentFoodCurrentPage, setResturentFoodTotalPage, setResturentFoodHasNext, setResturentFoodHasPrev, //each resturent foods /each Shop foods / user side
-    setCartData, setCartDataLoading, addFoodInCart, removeFoodFromCart, removeAllFoodFromCart, updateQuantityInCart, //Cart data [user side]
+    setCartData, setCartDataLoading, addFoodInCart, removeFoodFromCart, removeAllFoodFromCart, updateQuantityInCart, replaceFoodInCart , //Cart data [user side]
     setUserAllFoodData, setUserAllFoodLoading, setFindAllFoodByText, setSortUserAllFoods, // allFoods [user side]
     setUserSideTotalPages, setUserSideCurrentPage, setUserSideHasPrev, setUserSideHasNext, // user side pagination for all foods
 } = foodSlice.actions

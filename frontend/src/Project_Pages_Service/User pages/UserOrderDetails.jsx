@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import UserNav from '../Component/UserNav'
 import axios from 'axios'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -15,7 +15,12 @@ const UserOrderDetails = () => {
     let [orderData, setOrderData] = useState([])
     let socket = getSocket()
     let [userOrderStatus, setUserOrderStatus] = useState([]) // socket data
-    let [delivaryBoyData, setDelivaryBoyData] = useState(null) 
+    let [delivaryBoyData, setDelivaryBoyData] = useState(null)
+    let [delivaryBoyCoords, setDelivaryBoyCoords] = useState([]) //delivary boy live location from socket data
+
+    //emiting order assignment id from user side to join io room in server side :
+    let assignmentId = orderData.map(i => i?.assignment?._id?.toString())[0]
+
 
     let userOrder = useSelector(state => state.order)
     let status = orderData.map(i => i?.orderStatus)[0] || userOrder?.userOrderData?.map(i => i?.order?.map(j => j?.orderStatus)[0])
@@ -67,30 +72,48 @@ const UserOrderDetails = () => {
     }
 
     //Io geting user order status or groupId :
+
+    let orderDataRef = useRef(orderData)
+
+    useEffect(() => {
+        orderDataRef.current = orderData
+    }, [orderData])
+
     useEffect(() => {
         if (!socket) return
-        
+
         socket.on("userOrderData", data => {
             setUserOrderStatus(data)
         })
 
-        //fromDelivary boy
-        socket.on("userOrderStatus", data1 => {
-            setUserOrderStatus(data1) 
+        // Emit the same order assignment ID so the delivery boy can join the corresponding Socket.IO room [with user].
+        socket.emit("joinAssignmentRoom", assignmentId)
+
+        socket.on("delivaryBoyLocation", data => {
+            let match = orderDataRef.current.find(
+                i => i.assignment?._id?.toString() === data.assignmentId
+            )
+
+            if (match) {
+                setDelivaryBoyCoords([data.latitude, data.longitude])
+            }
         })
 
-    }, [socket])
+        socket.on("userOrderStatus", data1 => {
+            setUserOrderStatus(data1)
+        })
 
-    //socket event for the delivary boy data : [assigned delivary boy]
-    useEffect(() => {
         socket.on("delivaryBoyDetails", data => {
             setDelivaryBoyData(data)
         })
 
         return () => {
+            socket.off("userOrderData")
+            socket.off("userOrderStatus")
+            socket.off("delivaryBoyLocation")
             socket.off("delivaryBoyDetails")
         }
-    }, [socket])
+    }, [socket, assignmentId])
 
     return (
         <>
@@ -137,10 +160,10 @@ const UserOrderDetails = () => {
                         <div>
                             {["cancel"].map((i, index) => {
                                 return (
-                                    <>
+                                    <div key={index}>
                                         <button
-                                            disabled={status === "cancel" || status === "out for delivary" || status === "picked up and on_the_way"  || status === "compleate" || socketOrderStatus === "out for delivary" || socketOrderStatus === "cancel" || socketOrderStatus === "compleate" || socketOrderStatus === "picked up and on_the_way"}
-                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${status === "cancel" || status === "out for delivary" || status === "picked up and on_the_way"  || status === "compleate" || socketOrderStatus === "out for delivary"
+                                            disabled={status === "cancel" || status === "out for delivary" || status === "picked up and on_the_way" || status === "compleate" || socketOrderStatus === "out for delivary" || socketOrderStatus === "cancel" || socketOrderStatus === "compleate" || socketOrderStatus === "picked up and on_the_way"}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${status === "cancel" || status === "out for delivary" || status === "picked up and on_the_way" || status === "compleate" || socketOrderStatus === "out for delivary"
                                                 || socketOrderStatus === "cancel" || socketOrderStatus === "picked up and on_the_way" || socketOrderStatus === "compleate" ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                                                 : "bg-red-500 hover:bg-red-600 text-white cursor-pointer"}`} key={index}
 
@@ -173,7 +196,7 @@ const UserOrderDetails = () => {
                                             )}
                                         </div>
 
-                                    </>
+                                    </div>
                                 )
                             })}
                         </div>
@@ -210,8 +233,8 @@ const UserOrderDetails = () => {
                     </div>
 
                     <div className='flex flex-col lg:flex-row gap-5 lg:gap-25 mb-0 lg:mb-5 mt-0 lg:mt-3'>
-                        <span className='text-md font-semibold'>Price : <span className='text-sm font-normal text-gray-800 '>{orderData?.map(i => (
-                            <div className='mt-1 flex flex-col'>₹{i?.foodDetails?.price || "null"} * {i?.quantity || "null"} = {i?.foodDetails?.price * i?.quantity || "Null"} </div>
+                        <span className='text-md font-semibold'>Price : <span className='text-sm font-normal text-gray-800 '>{orderData?.map((i , index) => (
+                            <div key={index} className='mt-1 flex flex-col'>₹{i?.foodDetails?.price || "null"} * {i?.quantity || "null"} = {i?.foodDetails?.price * i?.quantity || "Null"} </div>
                         )) || "null"}  </span>
                         </span>
 
@@ -250,7 +273,7 @@ const UserOrderDetails = () => {
                             <span className='font-semibold'>Order Status - </span> <span className='text-blue-600 font-semibold'>{userOrderStatus?.orderGroupId === orderData.map(i => i?.orderGroupId)[0] ? userOrderStatus?.orderStatus : orderData[0]?.orderStatus || "null"}</span>
                         </div>
                         <div className='border bg-gray-100 px-3 py-1 border-blue-300 rounded-md'>
-                            <span className='font-semibold'>payment Status - </span> <span className='text-blue-600 font-semibold'>{(userOrderStatus?.paymentStatus === true || orderData?.map(i => i?.payment)[0] === true ? "paid" : "pending" )}</span>
+                            <span className='font-semibold'>payment Status - </span> <span className='text-blue-600 font-semibold'>{(userOrderStatus?.paymentStatus === true || orderData?.map(i => i?.payment)[0] === true ? "paid" : "pending")}</span>
                         </div>
                     </div>
 
