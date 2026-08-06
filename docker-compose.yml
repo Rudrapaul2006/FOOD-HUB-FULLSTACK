@@ -18,6 +18,12 @@ services:
       - ./backend/.env
     depends_on:
       - redis
+  
+  worker:
+    build: ./backend
+    command: node bullMq/Worker.js
+    depends_on:
+      - redis
 
   redis : 
     image: redis

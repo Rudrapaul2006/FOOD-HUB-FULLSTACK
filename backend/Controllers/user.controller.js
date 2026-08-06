@@ -4,6 +4,7 @@ import { USER } from "../Models/user.model.js";
 import { SHOP } from "../Models/shop.model.js"
 import { sendOtpMail } from "../utils/mail.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
+import { signupQueue } from "../Bullmq/Queue.js";
 
 //User Register :  
 export let register = async (req, res) => {
@@ -34,6 +35,9 @@ export let register = async (req, res) => {
 
         let hashedPass = await bcrypt.hash(password, 10);
         let user = await USER.create({ fullname, email, password: hashedPass, phone, role })
+
+        // add user to signupQueue for sending welcome email:
+        await signupQueue.add("signupQueue", { email: user?.email, fullname: user?.fullname })
 
         return res.status(200).json({
             message: "User created successfully",
@@ -244,7 +248,10 @@ export let googleSignup = async (req, res) => {
         })
 
         user.available = "yes"
-        await user.save()
+        await user.save() 
+
+        // send welcome email to user using BullMQ queue:
+        await signupQueue.add("signupQueue", { email: user.email, fullname: user.fullname })
 
         let token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7D" })
 

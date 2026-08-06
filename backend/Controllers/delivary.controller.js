@@ -4,6 +4,7 @@ import { USER } from '../Models/user.model.js'
 import jwt from 'jsonwebtoken'
 import { orderDelivaryMessage, sendOtpDelivary } from '../utils/mail.js';
 import { updateUserOrderStatus } from './order.controller.js';
+import { deliverySuccessQueue } from '../Bullmq/Queue.js';
 
 // Available delivary boys get all orders from shop :
 export let getAllOrdersFromShop = async (req, res) => {
@@ -444,7 +445,7 @@ export let delivaryStatusUpdate = async (req, res) => {
                 }
             )
 
-            await orderDelivaryMessage(ordererEmail, shopName, ordererName, foodDetails, payment, paymentMethod, totalPrice)
+            await deliverySuccessQueue.add("deliverySuccess", { ordererEmail, shopName, ordererName, foodDetails, payment, paymentMethod, totalPrice })
 
 
             return res.status(200).json({

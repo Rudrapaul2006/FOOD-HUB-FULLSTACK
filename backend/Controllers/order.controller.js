@@ -9,6 +9,7 @@ import mongoose, { Query } from "mongoose";
 import dotenv, { populate } from 'dotenv';
 import Razorpay from "razorpay";
 import { orderCancelationMessage, sendOrderPlaceMessage } from "../utils/mail.js";
+import { multipleOrderQueue, orderCancelationQueue, orderCancelByUser, singleOrderQueue } from "../Bullmq/Queue.js";
 
 
 dotenv.config()
@@ -179,7 +180,7 @@ export let allShopOrder = async (req, res) => {
         let paymentMod = allOrders?.map(i => i?.paymentMethod)[0]
         let totalPrice = allOrders?.reduce((total, item) => total + item?.foodDetails?.price * item?.quantity, 0)
 
-        await sendOrderPlaceMessage(ordererEmail, shopName, ordererName, foodDetails, payment, paymentMod, totalPrice)
+        await multipleOrderQueue.add("codOrderQueue", { ordererEmail, shopName, ordererName, foodDetails, payment, paymentMod, totalPrice })
 
         return res.status(201).json({
             message: "Order registered successfully",
@@ -335,7 +336,7 @@ export let verifyPayment = async (req, res) => {
         let paymentMethod = allOrders?.map(i => i?.paymentMethod)[0]
         let totalPrice = allOrders?.reduce((total, item) => total + item?.foodDetails?.price * item?.quantity, 0)
 
-        await sendOrderPlaceMessage(ordererEmail, shopName, ordererName, foodDetails, paymentDone, paymentMethod, totalPrice)
+        await multipleOrderQueue.add("multipleOrderQueue", { ordererEmail, shopName, ordererName, foodDetails, payment: paymentDone, paymentMod: paymentMethod, totalPrice })
 
         return res.status(201).json({
             message: "Order registered successfully",
@@ -506,7 +507,7 @@ export let singleFoodOrder = async (req, res) => {
         let paymentMod = valueOfSingleCodOrder?.map(i => i?.items?.map(j => j?.paymentMethod)[0])[0]
         let totalPrice = valueOfSingleCodOrder?.map(i => i?.items?.map(j => j?.foodDetails?.price * j?.quantity)[0])[0]
 
-        await sendOrderPlaceMessage(ordererEmail, shopName, ordererName, foodDetails, payment, paymentMod, totalPrice)
+        await singleOrderQueue.add("singleOrderQueue", { ordererEmail, shopName, ordererName, foodDetails, payment, paymentMod, totalPrice })
 
         return res.status(200).json({
             message: "Order placed succcesfully",
@@ -640,7 +641,7 @@ export let singleOnlineOrder = async (req, res) => {
             let paymentMod = allOnlineOrder?.map(i => i?.paymentMethod)[0]
             let totalPrice = allOnlineOrder?.map(i => i?.quantity * i?.foodDetails?.price)[0]
 
-            await sendOrderPlaceMessage(ordererEmail, shopName, ordererName, foodDetails, payment, paymentMod, totalPrice)
+            await singleOrderQueue.add("singleOrderQueue", { ordererEmail, shopName, ordererName, foodDetails, payment, paymentMod, totalPrice })
 
             return res.status(200).json({
                 message: "Payment done and order registerd",
@@ -738,7 +739,7 @@ export let getAllPendingOrders = async (req, res) => {
 
         // Get unique order groups sorted by latest order first
         let orderGroupIds = await ORDER.aggregate([
-            { $match: { shopDetails: shop._id, orderStatus: { $in: ["pending", "preparing", "out for delivary" , "picked up and on_the_way"] } } },
+            { $match: { shopDetails: shop._id, orderStatus: { $in: ["pending", "preparing", "out for delivary", "picked up and on_the_way"] } } },
             { $sort: { createdAt: -1 } },
             { $group: { _id: "$orderGroupId", latestCreatedAt: { $first: "$createdAt" } } },
             { $sort: { latestCreatedAt: -1 } },
@@ -751,7 +752,7 @@ export let getAllPendingOrders = async (req, res) => {
             {
                 $match: {
                     shopDetails: shop._id,
-                    orderStatus: { $in: ["pending", "preparing", "out for delivary" , "picked up and on_the_way"] }
+                    orderStatus: { $in: ["pending", "preparing", "out for delivary", "picked up and on_the_way"] }
                 }
             },
             {
@@ -1253,18 +1254,19 @@ export let updateUserOrderStatus = async (req, res) => {
                 { orderGroupId: groupId, shopDetails: shop._id },
                 { $set: { orderStatus: orderStatus, assignment: null, brodcastedTo: [], cancelReason: cancelReason, cancelBy: admin.role } }
             )
-            await orderCancelationMessage(ordererEmail, shopName, ordererName, foodDetails, cancelReason, payment, paymentMod, totalPrice)
+
+            await orderCancelationQueue.add("orderCancelation", { ordererEmail, shopName, ordererName, foodDetails, cancelReason, payment, paymentMod, totalPrice })
         } else if (currentStatus === "out for delivary" && orderStatus === "cancel") {
             await ORDER.updateMany(
                 { orderGroupId: groupId, shopDetails: shop._id },
                 { $set: { orderStatus: orderStatus, assignment: null, brodcastedTo: [], cancelReason: "No delivary partner available", cancelBy: admin.role } }
             )
 
-            await DELIVARY.findOneAndDelete({ orderGroupId: groupId, shopDetails: shop._id })
-            await orderCancelationMessage(ordererEmail, shopName, ordererName, foodDetails, "No delivary partner available", payment, paymentMod, totalPrice)
+            await DELIVARY.findOneAndDelete({ orderGroupId: groupId, shopDetails: shop?._id })
+            await orderCancelationQueue.add("orderCancelation", { ordererEmail, shopName, ordererName, foodDetails, cancelReason: "No delivary partner available", payment, paymentMod, totalPrice })
         }
 
-        let updatedOrders = await ORDER.find({ orderGroupId: groupId, shopDetails: shop._id })
+        let updatedOrders = await ORDER.find({ orderGroupId: groupId, shopDetails: shop?._id })
             .sort({ createdAt: -1 })
             .populate("orderedBy", "fullname email role address pincode phone socketId available image")
             .populate("foodDetails", "foodname price category foodtype paymentMethod quantity description isAvailable")
@@ -1328,7 +1330,7 @@ export let updateUserOrderStatus = async (req, res) => {
     }
 }
 
-//Delete Order : 
+//Delete Order : (no usage)
 export let DeleteUserOrderById = async (req, res) => {
     try {
         let orderId = req.params.id
@@ -1433,7 +1435,7 @@ export let userOrders = async (req, res) => {
                 $in: [true, false]
             },
             orderStatus: {
-                $in: ["pending", "preparing", "out for delivary" , "picked up and on_the_way"]
+                $in: ["pending", "preparing", "out for delivary", "picked up and on_the_way"]
             }
         }
 
@@ -1816,6 +1818,17 @@ export let userCancelation = async (req, res) => {
                 orderStatus: orderStatus
             })
         }
+
+        // order cancelation message from user side :
+        let ordererEmail =  order?.map(i => i?.orderedBy?.email)[0]
+        let shopName = order?.map(i => i?.shopDetails?.shopname)[0] 
+        let ordererName = order?.map(i => i?.orderedBy?.fullname)[0] 
+        let foodDetails = order?.map(i => i?.foodDetails?.foodname).join(" , ") 
+        let payment = order?.map(i => i?.payment)[0]  
+        let paymentMod = order?.map(i => i?.paymentMethod)[0] 
+        let totalPrice = order?.reduce((total, item) => total + item?.foodDetails?.price * item?.quantity, 0)
+        
+        await orderCancelByUser.add("orderCancelByUser", { ordererEmail, shopName, ordererName, foodDetails, cancelReason, payment, paymentMod, totalPrice })
 
         return res.status(200).json({
             message: "Order canceled successfully",

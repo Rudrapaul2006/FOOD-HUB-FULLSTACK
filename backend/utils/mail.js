@@ -20,6 +20,20 @@ transporter.verify((err, success) => {
     }
 })
 
+// send welcome mail:
+export let sendWelcomeMail = async (to, fullName) => {
+    await transporter.sendMail({
+        from: `"Food Delivery" <${process.env.EMAIL}>`,
+        to,
+        subject: "Welcome to Food Delivery 🎉",
+        html: `<p>Hi <b>${fullName}</b>,</p>
+            <p>Welcome to <b>Food Delivery</b>! 🎉</p>
+            <p>We're excited to have you with us. Explore delicious meals, place your first order, and enjoy fast delivery.</p>
+            <p>Happy Ordering! 🍕</p>
+            <p><b>Team Food Delivery</b></p> `,
+    })
+}
+
 //Forget password ka otp:
 export let sendOtpMail = async (to, otp) => {
     await transporter.sendMail({
@@ -56,7 +70,7 @@ export let sendOrderPlaceMessage = async (email, shopName, ordererName, foodName
     })
 }
 
-//order cancelation mail:
+//order cancelation mail: (by shop)
 export let orderCancelationMessage = async (email, shopName, ordererName, foodNames, reason, payment, paymentMethod, totalPrice) => {
     transporter.sendMail({
         from: process.env.EMAIL,
@@ -69,6 +83,25 @@ export let orderCancelationMessage = async (email, shopName, ordererName, foodNa
                 ${payment === true ? `<p>Amount: ${totalPrice} | Paymentmethod: ${paymentMethod} </p>` : `Paymentmethod: ${paymentMethod}`}
                 <p>We’re sorry for the inconvenience 💔</p>
                 ${payment === true ? `<p>Your refund of ₹${totalPrice} will be processed soon ..</p>` : `<p>No payment was charged for this order.</p>`}
+                </div>`,
+    })
+}
+
+// User order cancellation mail:
+//ordererEmail, shopName, ordererName, foodDetails, cancelReason, payment, paymentMod, totalPrice
+export let userOrderCancelationMessage = async (email, shopName, ordererName, foodNames, cancelReason, payment, paymentMethod, totalPrice) => {
+    transporter.sendMail({
+        from: process.env.EMAIL,
+        to: email,
+        subject: "Order canceled successfully",
+        html: `<div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                <h2 style="color:#dc2626;">Order Cancelled Successfully</h2>
+                <p>Hello <b>${ordererName}</b>, you have successfully cancelled your order from <b>${shopName}</b>.</p>
+                <p><b>Food Items :</b> ${foodNames}</p>
+                ${payment === true ? `<p>Amount: ₹${totalPrice} | Payment Method: ${paymentMethod}</p>` : `<p>Payment Method: ${paymentMethod}</p>`}
+                <p>Your cancellation request has been received successfully</p>
+                ${payment === true ? `<p>Your refund of ₹${totalPrice} will be processed soon.</p>` : `<p>No payment was charged for this order.</p>`}
+                <p>We hope to serve you again soon 🍽️</p>
                 </div>`,
     })
 }

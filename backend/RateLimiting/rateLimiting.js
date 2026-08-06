@@ -5,7 +5,9 @@ import { RedisStore } from 'rate-limit-redis'
 
 
 // Adding io redis in server :
-let redisInstance = new Redis(process.env.REDIS_URL)
+export let redisInstance = new Redis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: null,
+})
 
 //redis connection :
 redisInstance.on("connect", () => {
