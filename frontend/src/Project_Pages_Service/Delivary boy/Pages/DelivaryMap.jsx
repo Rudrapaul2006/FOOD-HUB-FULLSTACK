@@ -42,12 +42,8 @@ let RoutingContrtoll = ({ shopCoords, delivaryBoyCoords }) => {
       addWaypoints: false,
       draggableWaypoints: false,
       fitSelectedRoutes: true,
-      marker: () => null,
-
-      createMarker: (i, wp) => {
-        if (i === 0) return null
-        return L.marker(wp.latLng, { icon: shopIcon })
-      }
+      createMarker: () => null 
+      
     }).addTo(map)
 
     RouteControlRef.current = routeControl

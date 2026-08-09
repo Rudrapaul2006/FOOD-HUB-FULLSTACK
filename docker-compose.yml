@@ -21,7 +21,10 @@ services:
   
   worker:
     build: ./backend
-    command: node bullMq/Worker.js
+    command: node Bullmq/Worker.js
+    env_file:
+      - ./backend/.env
+    container_name: Food_Hub_Message_Queue
     depends_on:
       - redis
 

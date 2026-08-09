@@ -251,7 +251,7 @@ export let googleSignup = async (req, res) => {
         await user.save() 
 
         // send welcome email to user using BullMQ queue:
-        await signupQueue.add("signupQueue", { email: user.email, fullname: user.fullname })
+        await signupQueue.add("signupQueue", { email: user?.email, fullname: user?.fullname })
 
         let token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7D" })
 

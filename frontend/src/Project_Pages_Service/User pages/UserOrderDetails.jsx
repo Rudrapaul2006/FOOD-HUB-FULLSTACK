@@ -91,11 +91,11 @@ const UserOrderDetails = () => {
 
         socket.on("delivaryBoyLocation", data => {
             let match = orderDataRef.current.find(
-                i => i.assignment?._id?.toString() === data.assignmentId
+                i => i?.assignment?._id?.toString() === data?.assignmentId
             )
 
             if (match) {
-                setDelivaryBoyCoords([data.latitude, data.longitude])
+                setDelivaryBoyCoords([data?.latitude, data?.longitude])
             }
         })
 

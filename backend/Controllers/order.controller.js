@@ -1635,7 +1635,7 @@ export let userCancelAndCompleateorder = async (req, res) => {
 
         if (sort === "lth") {
             result.sort((a, b) => a?.totalPrice - b?.totalPrice)
-        } else if (sort === "lth") {
+        } else if (sort === "htl") {
             result.sort((a, b) => b?.totalPrice - a?.totalPrice)
         } else if (sort === "oldest") {
             result.sort(

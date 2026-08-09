@@ -39,6 +39,8 @@ export let socketIO = (io) => {
         socket.on("joinAssignmentRoom", (assignmentId) => {
             if (!assignmentId) return
 
+            //Before creating room cheak who is the user and delivary boy and then join
+            //Basically cheak the authorization of the user and delivary boy for the specific assignmentId (order) 
             socket.join(assignmentId)
             console.log(`Socket ${socket.id} joined room: ${assignmentId}`)
         })
