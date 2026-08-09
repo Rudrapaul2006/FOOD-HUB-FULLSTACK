@@ -21,40 +21,68 @@ let riderIcon = new L.Icon({
   iconSize: [35, 35],
 })
 
-// Map Intigration :
-let RoutingContrtoll = ({ shopCoords, delivaryBoyCoords }) => {
+let userIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/3177/3177361.png',
+  iconSize: [35, 35],
+})
+
+// Map Integration with throttled routing control:
+let RoutingContrtoll = ({ destinationCoords, delivaryBoyCoords }) => {
   let map = useMap()
   let RouteControlRef = useRef(null)
+  let lastUpdateRef = useRef(0)
+  let lastDestRef = useRef(null)
 
   useEffect(() => {
-    if (!map || !shopCoords?.length || !delivaryBoyCoords?.length) return
+    if (!map || !destinationCoords?.length || !delivaryBoyCoords?.length) return
 
-    let routeControl = L.routing.control({
-      waypoints: [
-        L.latLng(delivaryBoyCoords[0], delivaryBoyCoords[1]),
-        L.latLng(shopCoords[1], shopCoords[0])
-      ],
-      lineOptions: {
-        styles: [{ color: "#6FA1EC", weight: 4 }],
-      },
-      routeWhileDragging: false,
-      show: true,
-      addWaypoints: false,
-      draggableWaypoints: false,
-      fitSelectedRoutes: true,
-      createMarker: () => null 
-      
-    }).addTo(map)
+    let startLatLng = L.latLng(delivaryBoyCoords[0], delivaryBoyCoords[1])
+    let destLatLng = L.latLng(destinationCoords[0], destinationCoords[1])
+    let newWaypoints = [startLatLng, destLatLng]
 
-    RouteControlRef.current = routeControl
+    let destKey = `${destinationCoords[0]},${destinationCoords[1]}`
+    let destChanged = lastDestRef.current !== destKey
+    lastDestRef.current = destKey
 
+    let now = Date.now()
+
+    if (!RouteControlRef.current) {
+      // First initialization of routing control
+      RouteControlRef.current = L.routing.control({
+        waypoints: newWaypoints,
+        lineOptions: {
+          styles: [{ color: "#6FA1EC", weight: 4 }],
+        },
+        routeWhileDragging: false,
+        show: false,
+        addWaypoints: false,
+        draggableWaypoints: false,
+        fitSelectedRoutes: true,
+        createMarker: () => null
+      }).addTo(map)
+      lastUpdateRef.current = now
+    } else {
+      // Throttle waypoint updates to ~15s unless destination changed
+      if (destChanged || (now - lastUpdateRef.current >= 15000)) {
+        RouteControlRef.current.setWaypoints(newWaypoints)
+        lastUpdateRef.current = now
+      }
+    }
+  }, [map, destinationCoords, delivaryBoyCoords])
+
+  // Cleanup routing control on unmount
+  useEffect(() => {
     return () => {
-      if (RouteControlRef.current) {
-        map.removeControl(RouteControlRef.current)
+      if (RouteControlRef.current && map) {
+        try {
+          map.removeControl(RouteControlRef.current)
+        } catch (e) {
+          // ignore cleanup errors if map destroyed
+        }
         RouteControlRef.current = null
       }
     }
-  }, [map, shopCoords, delivaryBoyCoords])
+  }, [map])
 
   return null
 }
@@ -103,15 +131,29 @@ const DelivaryMap = () => {
   }, [assignmentId])
 
 
-  //Map intigration data :
+  //Map integration data :
   let { userData } = useSelector((state) => state.user)
 
   let shopCoords = orderDetails?.shopDetails?.shopGeoLocation?.coordinates
+  let userCoords = orderDetails?.orderedBy?.location?.coordinates
+
+  let orderStatus = orderDetails?.order?.[0]?.orderStatus || orderDetails?.orderStatus || ""
+  let isPickedUp = orderStatus === "picked up and on_the_way" ||
+                   orderStatus.includes("picked_up") ||
+                   orderStatus.includes("on_the_way") ||
+                   orderStatus === "compleate"
+
+  let shopLatLng = shopCoords?.length === 2 ? [shopCoords[1], shopCoords[0]] : null
+  let userLatLng = userCoords?.length === 2 ? [userCoords[1], userCoords[0]] : null
+
+  // Route destination switches to user coordinates once status is PICKED_UP+
+  let destinationCoords = isPickedUp && userLatLng ? userLatLng : shopLatLng
+
   let [delivaryBoyCoords, setDelivaryBoyCoords] = useState([]) 
 
   // for map centralization :
   let defaultCenter = [22.5726, 88.3639]
-  let mapCenter = delivaryBoyCoords.length ? delivaryBoyCoords : defaultCenter
+  let mapCenter = delivaryBoyCoords.length ? delivaryBoyCoords : (destinationCoords || defaultCenter)
 
   // Send live location to user :
   useEffect(() => {
@@ -129,8 +171,8 @@ const DelivaryMap = () => {
       socket.emit("delivaryBoyLiveLocation", {
         latitude: lat,
         longitude: lon,
-        delivaryBoyId: userData.user._id,
-        delivaryBoyName: userData.user.fullname,
+        delivaryBoyId: userData?.user?._id,
+        delivaryBoyName: userData?.user?.fullname,
         delivaryBoyPhone: userData?.user?.phone,
         assignmentId: assignmentId
       })
@@ -145,7 +187,7 @@ const DelivaryMap = () => {
       navigator.geolocation.clearWatch(watchLocation)
     }
 
-  }, [socket, assignmentId])
+  }, [socket, assignmentId, userData])
 
   return (
     <div className="relative h-screen w-full">
@@ -163,10 +205,17 @@ const DelivaryMap = () => {
 
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {shopCoords && (
+        {shopLatLng && (
           <Marker
-            position={[shopCoords[1], shopCoords[0]]}
+            position={shopLatLng}
             icon={shopIcon}
+          />
+        )}
+
+        {userLatLng && (
+          <Marker
+            position={userLatLng}
+            icon={userIcon}
           />
         )}
 
@@ -179,7 +228,7 @@ const DelivaryMap = () => {
         )}
 
         <RoutingContrtoll
-          shopCoords={shopCoords}
+          destinationCoords={destinationCoords}
           delivaryBoyCoords={delivaryBoyCoords}
         />
       </MapContainer>

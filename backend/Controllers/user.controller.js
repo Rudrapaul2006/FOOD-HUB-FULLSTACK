@@ -80,7 +80,7 @@ export let login = async (req, res) => {
             })
         }
 
-        if (user?.available === "yes") {
+        if (user?.available === "yes" && user?.socketId.length > 0) {
             return res.status(400).json({
                 message: "Account is already logged in another tab or device",
                 success: false
@@ -248,7 +248,7 @@ export let googleSignup = async (req, res) => {
         })
 
         user.available = "yes"
-        await user.save() 
+        await user.save()
 
         // send welcome email to user using BullMQ queue:
         await signupQueue.add("signupQueue", { email: user?.email, fullname: user?.fullname })
@@ -309,7 +309,7 @@ export let googleLogin = async (req, res) => {
             })
         }
 
-        if (user?.available === "yes") {
+        if (user?.available === "yes" && user?.socketId.length > 0) {
             return res.status(400).json({
                 message: "Account is already logged in another tab or device",
                 success: false
