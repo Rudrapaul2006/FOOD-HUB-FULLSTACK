@@ -138,10 +138,7 @@ const DelivaryMap = () => {
   let userCoords = orderDetails?.orderedBy?.location?.coordinates
 
   let orderStatus = orderDetails?.order?.[0]?.orderStatus || orderDetails?.orderStatus || ""
-  let isPickedUp = orderStatus === "picked up and on_the_way" ||
-                   orderStatus.includes("picked_up") ||
-                   orderStatus.includes("on_the_way") ||
-                   orderStatus === "compleate"
+  let isPickedUp = orderStatus === "picked up and on_the_way" || orderStatus.includes("picked_up") || orderStatus.includes("on_the_way") || orderStatus === "compleate"
 
   let shopLatLng = shopCoords?.length === 2 ? [shopCoords[1], shopCoords[0]] : null
   let userLatLng = userCoords?.length === 2 ? [userCoords[1], userCoords[0]] : null

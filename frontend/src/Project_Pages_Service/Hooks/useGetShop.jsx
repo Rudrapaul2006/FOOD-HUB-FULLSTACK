@@ -20,9 +20,7 @@ const useGetShop = () => {
             try {
                 let res = await axios.get(`${import.meta.env.VITE_shop_endpoint}/get`, { withCredentials: true })
                 if (res.data.success) {
-                    dispatch(setShopData(res.data.shop))
-                    console.log(res.data.shop);
-                    
+                    dispatch(setShopData(res.data.shop))              
                 }
             } catch (error) {
                 console.log(error)

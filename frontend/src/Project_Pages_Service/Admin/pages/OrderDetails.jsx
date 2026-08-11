@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import AdminNav from '../AdminNav'
 import { useDispatch, useSelector } from 'react-redux';
 import { IoIosArrowBack } from 'react-icons/io';
 import { data, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { updateorder } from '@/Project_Pages_Service/Redux/orderSlice';
+import { deleteOrderItem, updateorder } from '@/Project_Pages_Service/Redux/orderSlice';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import singleOrderSocket from '@/Project_Pages_Service/WebSocketHooks/singleOrderSocket';
@@ -12,20 +12,142 @@ import multipleOrderSocket from '@/Project_Pages_Service/WebSocketHooks/multiple
 import { getPendingOrders } from '@/Project_Pages_Service/Hooks/useGetOrders';
 import { getSocket } from '@/Project_Pages_Service/WebSocketHooks/connetSocket';
 
+// Map Intigration :
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import 'leaflet-routing-machine'
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css'
+
+
+// instead of being offset by their top-left corner.
+let shopIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448609.png',
+  iconSize: [35, 35],
+  iconAnchor: [17, 35],
+  popupAnchor: [0, -35],
+})
+
+let riderIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+  iconSize: [35, 35],
+  iconAnchor: [17, 35],
+  popupAnchor: [0, -35],
+})
+
+let userIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/3177/3177361.png',
+  iconSize: [35, 35],
+  iconAnchor: [17, 35],
+  popupAnchor: [0, -35],
+})
+
+// Route control drawing path: Shop -> Delivery Boy -> User
+const RoutingControl = ({ shopCoords, riderCoords, userCoords }) => {
+  let map = useMap()
+  let routeControlRef = useRef(null)
+
+  useEffect(() => {
+    if (!map) return
+
+    let waypoints = []
+    if (shopCoords?.length === 2 && !isNaN(shopCoords[0]) && !isNaN(shopCoords[1])) {
+      waypoints.push(L.latLng(shopCoords[0], shopCoords[1]))
+    }
+    if (riderCoords?.length === 2 && !isNaN(riderCoords[0]) && !isNaN(riderCoords[1])) {
+      waypoints.push(L.latLng(riderCoords[0], riderCoords[1]))
+    }
+    if (userCoords?.length === 2 && !isNaN(userCoords[0]) && !isNaN(userCoords[1])) {
+      waypoints.push(L.latLng(userCoords[0], userCoords[1]))
+    }
+
+    if (waypoints.length < 2) {
+      if (routeControlRef.current && map) {
+        try { map.removeControl(routeControlRef.current) } catch (e) { }
+        routeControlRef.current = null
+      }
+      return
+    }
+
+    if (!routeControlRef.current) {
+      routeControlRef.current = L.routing.control({
+        waypoints: waypoints,
+        lineOptions: {
+          styles: [{ color: "#2563EB", weight: 4, opacity: 0.85 }],
+        },
+        routeWhileDragging: false,
+        show: false,
+        addWaypoints: false,
+        draggableWaypoints: false,
+        fitSelectedRoutes: false,
+        createMarker: () => null
+      }).addTo(map)
+    } else {
+      routeControlRef.current.setWaypoints(waypoints)
+    }
+    // FIX: depend on primitive lat/lng values instead of whole array references,
+    // otherwise this effect (and setWaypoints -> routing API call) re-runs on every render.
+  }, [
+    map,
+    shopCoords?.[0], shopCoords?.[1],
+    riderCoords?.[0], riderCoords?.[1],
+    userCoords?.[0], userCoords?.[1],
+  ])
+
+  useEffect(() => {
+    return () => {
+      if (routeControlRef.current && map) {
+        try { map.removeControl(routeControlRef.current) } catch (e) { }
+        routeControlRef.current = null
+      }
+    }
+  }, [map])
+
+  return null
+}
+
+const MapBoundsFit = ({ shopCoords, riderCoords, userCoords }) => {
+  let map = useMap()
+  let initialFitDoneRef = useRef(false)
+
+  useEffect(() => {
+    if (!map) return
+    let points = []
+    if (shopCoords?.length === 2 && !isNaN(shopCoords[0]) && !isNaN(shopCoords[1])) points.push(shopCoords)
+    if (riderCoords?.length === 2 && !isNaN(riderCoords[0]) && !isNaN(riderCoords[1])) points.push(riderCoords)
+    if (userCoords?.length === 2 && !isNaN(userCoords[0]) && !isNaN(userCoords[1])) points.push(userCoords)
+
+    if (points.length > 0 && !initialFitDoneRef.current) {
+      let bounds = L.latLngBounds(points)
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 })
+      initialFitDoneRef.current = true
+    }
+    // FIX: same primitive-dependency fix as RoutingControl.
+  }, [
+    map,
+    shopCoords?.[0], shopCoords?.[1],
+    riderCoords?.[0], riderCoords?.[1],
+    userCoords?.[0], userCoords?.[1],
+  ])
+
+  return null
+}
+
 const OrderDetails = () => {
+
   //socket function for the [for the single order]
   singleOrderSocket()
   //socket function for the [for the multiple order]
   multipleOrderSocket()
 
+  let socket = getSocket()
+
   let navigate = useNavigate()
   let dispatch = useDispatch()
   let params = useParams()
   let groupId = params.id
-  let socket = getSocket()
 
   let { shopData } = useSelector(state => state.admin)
-  
 
   let [orderDetails, setOrderDetails] = useState([])
   let [OrderStatus, setIoOrderStatus] = useState([])  //[used in socketIo event on orderStatus update] 
@@ -72,7 +194,7 @@ const OrderDetails = () => {
   }, [groupId])
 
   //Order status update :
-  let {currentPage} = useSelector(state => state.order)
+  let { currentPage } = useSelector(state => state.order)
   let updateOrderStatus = async (newStatus) => {
     try {
       let res = await axios.put(`${import.meta.env.VITE_order_endpoint}/updatestatus/${groupId}`, { orderStatus: newStatus, cancelReason: selectReason }, { withCredentials: true })
@@ -89,11 +211,14 @@ const OrderDetails = () => {
     }
   }
 
-
   //socket event for the delivary boy data :
   useEffect(() => {
     socket.on("delivaryPartnerDetails", data => {
-      setOrderDetails(prev => prev.map(order => ({ ...order, deliveryBoy: data })))
+      if (data) {
+        if (data) {
+          setOrderDetails(prev => prev.map(order => ({ ...order, deliveryBoy: data })))
+        }
+      }
     })
 
     return () => {
@@ -126,6 +251,84 @@ const OrderDetails = () => {
       socket.off("orderCancelation")
     }
   }, [socket])
+
+
+
+
+  let assignmentId = orderDetails?.map(i => i?.items?.map(j => j?.assignment?._id)[0]?.toString())[0]
+
+  //join room in server by assignment id :
+  useEffect(() => {
+    if (assignmentId) {
+      socket.emit("joinAssignmentRoom", assignmentId)
+    }
+  }, [assignmentId])
+
+
+  //set delivary boy latest location from DB || or || live delivary boy location :
+  let [delivaryBoyCoords, setDelivaryBoyCoords] = useState(null)
+  let [isLiveLocation, setIsLiveLocation] = useState(false)
+  let isLiveRef = useRef(false)
+
+  // Reset live tracking state when order changes
+  useEffect(() => {
+    isLiveRef.current = false
+    setIsLiveLocation(false)
+    setDelivaryBoyCoords([])
+  }, [groupId])
+
+  // DB latest coordinates :
+  let delivaryLatLang = orderDetails[0]?.items[0]?.assignment?.assignto?.location?.coordinates
+
+  useEffect(() => {
+    if (isLiveRef.current) return // Do not let older DB location overwrite newer live location
+    if (delivaryLatLang && Array.isArray(delivaryLatLang) && delivaryLatLang.length === 2) {
+      let lng = Number(delivaryLatLang[0])
+      let lat = Number(delivaryLatLang[1])
+
+      if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+        setDelivaryBoyCoords([lat, lng])
+      }
+    }
+  }, [delivaryLatLang])
+
+
+  let shopRawCoords = orderDetails?.[0]?.items?.[0]?.shopDetails?.shopGeoLocation?.coordinates
+  let shopLatLang = (shopRawCoords && Array.isArray(shopRawCoords) && shopRawCoords.length === 2 && !isNaN(shopRawCoords[0]) && !isNaN(shopRawCoords[1]) && (shopRawCoords[0] !== 0 || shopRawCoords[1] !== 0))
+    ? [Number(shopRawCoords[1]), Number(shopRawCoords[0])] // [lat, lng]
+    : null
+
+  let userRawCoords = orderDetails?.[0]?.items?.[0]?.orderedBy?.location?.coordinates
+  let userLatLang = (userRawCoords && Array.isArray(userRawCoords) && userRawCoords.length === 2 && !isNaN(userRawCoords[0]) && !isNaN(userRawCoords[1]) && (userRawCoords[0] !== 0 || userRawCoords[1] !== 0))
+    ? [Number(userRawCoords[1]), Number(userRawCoords[0])] // [lat, lng]
+    : null
+
+
+  //set Delivary boy live location :
+  useEffect(() => {
+    if (!socket) return
+
+    let handleLocation = (data) => {
+      if (data && data.latitude != null && data.longitude != null) {
+        let lon = Number(data.longitude)
+        let lat = Number(data.latitude)
+
+        if (!isNaN(lon) && !isNaN(lat)) {
+          setIsLiveLocation(true)
+          isLiveRef.current = true
+          setDelivaryBoyCoords([lon, lat])
+        }
+      }
+    }
+
+    socket.on("delivaryBoyLocation", handleLocation);
+
+    return () => {
+      socket.off("delivaryBoyLocation", handleLocation);
+    }
+
+  }, [socket])
+
 
   return (
     <>
@@ -257,7 +460,7 @@ const OrderDetails = () => {
                               isDisable = true
                             }
                             if (s === currentStatus) { isDisable = true }
-                            if (currentStatus === "compleate" || currentStatus === "cancel" || currentStatus === "picked up and on_the_way") { isDisable = true }
+                            if (currentStatus === "compleate" || currentStatus === "cancel") { isDisable = true }
                             if (currentStatus === "pending" && (s === "out for delivary")) { isDisable = true }
                             if (s === "preparing" && currentStatus === "out for delivary") { isDisable = true }
                             if (s === "out for delivary" && currentStatus === "cancel") { isDisable = true }
@@ -319,17 +522,89 @@ const OrderDetails = () => {
                 </div>
 
               </div>
-              
-              {/* user cancel reason : */}
-              { (userCancelStatus.role === "user" || canceledBy === "user") && (userCancelStatus || cancelReason) && (
-                  <div className='lg:mt-3 flex flex-col sm:flex-row gap-3 sm:gap-5 sm:mr-7 pb-2 mt-5'>
-                    <div className='border border-red-200 px-4 py-1.5 bg-red-50 rounded-md shadow-sm text-sm flex items-start gap-2'>
-                      <span className='font-semibold text-red-700 whitespace-nowrap'>Cancel Reason ( by user ) :</span>
-                      <span className='text-[#7a1c1c]'>{(userCancelStatus.role === "user" || canceledBy === "user") ? (cancelReason || userCancelStatus?.cancelReason) : "Null"}</span>
-                    </div>
+
+
+              {/* Live Delivery Tracking Map */}
+              <div className="w-full border rounded-lg p-4 bg-white shadow-sm mb-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                    <span>🛵</span> Live Delivery Tracking
+                  </h3>
+                  {isLiveLocation && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 animate-pulse">
+                      • Live Location
+                    </span>
+                  )}
+                </div>
+
+                {/* Map Legend */}
+                <div className="flex flex-wrap gap-4 text-xs font-medium text-gray-700 mb-3 bg-gray-50 p-2 rounded-md border border-gray-100">
+                  {shopLatLang && <span className="flex items-center gap-1">🏬 <span className="font-semibold">Shop:</span> {orderDetails?.[0]?.items?.[0]?.shopDetails?.shopname || "Store"}</span>}
+                  {delivaryBoyCoords?.length === 2 && <span className="flex items-center gap-1">🛵 <span className="font-semibold">Rider:</span> {orderDetails?.[0]?.items?.[0]?.assignment?.assignto?.fullname || "Delivery Boy"}</span>}
+                  {userLatLang && <span className="flex items-center gap-1">📍 <span className="font-semibold">User:</span> Delivery Location</span>}
+                </div>
+
+                {(delivaryBoyCoords?.length === 2 || shopLatLang || userLatLang) ? (
+                  <div className="h-72 w-full rounded-lg overflow-hidden border border-gray-200 z-0 relative">
+                    <MapContainer
+                      center={delivaryBoyCoords?.length === 2 ? delivaryBoyCoords : (shopLatLang || userLatLang || [22.5726, 88.3639])}
+                      zoom={14}
+                      style={{ height: "100%", width: "100%" }}
+                      scrollWheelZoom={false}
+                    >
+                      <MapBoundsFit shopCoords={shopLatLang} riderCoords={delivaryBoyCoords} userCoords={userLatLang} />
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                      {shopLatLang && (
+                        <Marker position={shopLatLang} icon={shopIcon}>
+                          <Popup>
+                            <div className="text-sm font-semibold">Shop: {orderDetails?.[0]?.items?.[0]?.shopDetails?.shopname || "Store"}</div>
+                          </Popup>
+                        </Marker>
+                      )}
+
+                      {delivaryBoyCoords?.length === 2 && !isNaN(delivaryBoyCoords[0]) && !isNaN(delivaryBoyCoords[1]) && (
+                        <Marker position={delivaryBoyCoords} icon={riderIcon}>
+                          <Popup>
+                            <div className="text-sm font-semibold">
+                              {orderDetails?.[0]?.items?.[0]?.assignment?.assignto?.fullname || "Delivery Partner"}
+                            </div>
+                          </Popup>
+                        </Marker>
+                      )}
+
+                      {userLatLang && (
+                        <Marker position={userLatLang} icon={userIcon}>
+                          <Popup>
+                            <div className="text-sm font-semibold">Customer Delivery Location</div>
+                          </Popup>
+                        </Marker>
+                      )}
+
+                      <RoutingControl shopCoords={shopLatLang} riderCoords={delivaryBoyCoords} userCoords={userLatLang} />
+                    </MapContainer>
+                  </div>
+                ) : (
+                  <div className="h-44 w-full rounded-lg border border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-gray-500 gap-1 p-4">
+                    <svg className="w-8 h-8 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-gray-600">Location map unavailable</span>
                   </div>
                 )}
-              
+              </div>
+
+              {/* user cancel reason : */}
+              {(userCancelStatus?.role === "user" || canceledBy === "user") && (userCancelStatus || cancelReason) && (
+                <div className='lg:mt-3 flex flex-col sm:flex-row gap-3 sm:gap-5 sm:mr-7 pb-2 mt-5'>
+                  <div className='border border-red-200 px-4 py-1.5 bg-red-50 rounded-md shadow-sm text-sm flex items-start gap-2'>
+                    <span className='font-semibold text-red-700 whitespace-nowrap'>Cancel Reason ( by user ) :</span>
+                    <span className='text-[#7a1c1c]'>{(userCancelStatus?.role === "user" || canceledBy === "user") ? (cancelReason || userCancelStatus?.cancelReason) : "Null"}</span>
+                  </div>
+                </div>
+              )}
+
               {/* asigned delivary boy */}
               <div className="border w-full lg:w-[35%] h-fit p-3 mt-5 lg:mt-3 mb-6 rounded-md">
                 <div className="text-sm lg:text-md font-semibold mb-2"> Assigned delivery boy </div>
@@ -339,7 +614,7 @@ const OrderDetails = () => {
                   <span> <span className="font-medium">Phone:</span> {" "} {item?.deliveryBoy?.phone || item?.items?.[0]?.assignment?.assignto?.phone || "—"} </span>
                 </div>
               </div>
-              
+
               {/* available delivary partener's number */}
               <div className='lg:mt-1 flex flex-col sm:flex-row lg:flex gap-3 sm:gap-5 sm:mr-7 pb-9 mt-2'>
                 <div className='border px-5 lg:px-4 py-1 bg-gray-100 rounded-md '>

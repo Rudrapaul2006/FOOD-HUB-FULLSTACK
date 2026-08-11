@@ -3,31 +3,49 @@ import { USER } from "../Models/user.model.js"
 import { SHOP } from "../Models/shop.model.js"
 import { ORDER } from "../Models/order.model.js"
 import { DELIVARY } from "../Models/delivary.model.js"
+import chalk from "chalk"
 
 export let socketIO = (io) => {
+
     // JWT auth middleware for Socket.IO
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
         try {
-            let token = socket.handshake.auth?.token;
+            let token = socket.handshake.auth?.token
+
             if (!token && socket.handshake.headers?.cookie) {
-                const cookieHeader = socket.handshake.headers.cookie;
-                const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);
-                if (match) token = match[1];
+                let cookieHeader = socket.handshake.headers.cookie;
+                let match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/)
+                if (match) token = match[1]
             }
+
             if (!token) {
                 return next(new Error("Authentication error: No token provided"));
             }
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            let decoded = jwt.verify(token, process.env.JWT_SECRET);
             if (!decoded || !decoded.id) {
                 return next(new Error("Authentication error: Invalid token"));
             }
-            socket.data.userId = decoded.id;
-            next();
+
+            let user = await USER.findById(decoded.id)
+            // if (!user) {
+            //     return next(new Error("Authentication error: User not found"));
+            // }
+            // console.log(chalk.greenBright(`Socket connected: ${user.fullname} (ID: ${user._id}, Role: ${user.role})`))
+
+            socket.data.userId = decoded.id
+            socket.data.role = user.role
+            socket.data.fullname = user.fullname
+            socket.data.socketId = user.socketId
+
+            next()
+
         } catch (error) {
-            console.error("Socket authentication failed:", error.message);
+            console.error("Socket authentication failed : ", error.message);
             return next(new Error("Authentication error"));
         }
-    });
+    })
+
 
     io.on("connection", (socket) => {
 
@@ -71,29 +89,26 @@ export let socketIO = (io) => {
                 let userId = socket.data.userId;
                 if (!userId) return;
 
-                // Authorization check: verify userId matches order's user/shop/deliveryBoy
+                // Authorization check: verify userId's matches order's user/shop/deliveryBoy
                 let isAuthorized = false;
 
-                let assignment = await DELIVARY.findById(assignmentId).populate("shopDetails");
+                let assignment = await DELIVARY.findById(assignmentId).populate("shopDetails")
                 if (assignment) {
-                    let isCustomer = assignment.orderedBy?.toString() === userId.toString();
-                    let isDeliveryBoy = assignment.assignto?.toString() === userId.toString();
-                    let isShopOwner = assignment.shopDetails?.owner?.toString() === userId.toString();
+                    let isCustomer = assignment?.orderedBy?.toString() === userId.toString()
+                    let isDeliveryBoy = assignment?.assignto?.toString() === userId.toString()
+                    let isShopOwner = assignment?.shopDetails?.owner?.toString() === userId.toString()
                     if (isCustomer || isDeliveryBoy || isShopOwner) {
                         isAuthorized = true;
                     }
                 }
 
                 if (!isAuthorized) {
-                    let order = await ORDER.findOne({
-                        $or: [{ _id: assignmentId }, { assignment: assignmentId }]
-                    }).populate("shopDetails");
+                    let order = await ORDER.findOne({ $or: [{ _id: assignmentId }, { assignment: assignmentId }] }).populate("shopDetails")
 
                     if (order) {
-                        let isCustomer = order.orderedBy?.toString() === userId.toString();
-                        let isDeliveryBoy = order.assignedDelivaryBoy?.toString() === userId.toString();
-                        let isShopOwner = order.owner?.toString() === userId.toString() ||
-                                          order.shopDetails?.owner?.toString() === userId.toString();
+                        let isCustomer = order?.orderedBy?.toString() === userId.toString();
+                        let isDeliveryBoy = order?.assignedDelivaryBoy?.toString() === userId.toString();
+                        let isShopOwner = order?.owner?.toString() === userId.toString() || order?.shopDetails?.owner?.toString() === userId.toString();
                         if (isCustomer || isDeliveryBoy || isShopOwner) {
                             isAuthorized = true;
                         }
@@ -101,13 +116,13 @@ export let socketIO = (io) => {
                 }
 
                 if (isAuthorized) {
-                    socket.join(assignmentId);
-                    console.log(`Socket ${socket.id} (user ${userId}) authorized and joined room: ${assignmentId}`);
+                    socket.join(assignmentId)
+                    // console.log(`Socket ${socket.id} (user ${userId}) authorized and joined room: ${assignmentId}`)
                 } else {
-                    console.warn(`Unauthorized room join attempt by user ${userId} for room ${assignmentId}`);
+                    console.warn(`Unauthorized room join attempt by user ${userId} for room ${assignmentId}`)
                 }
             } catch (error) {
-                console.error("Error verifying room authorization:", error);
+                console.error("Error verifying room authorization:", error)
             }
         })
 
@@ -126,31 +141,60 @@ export let socketIO = (io) => {
                 }
                 socket.data.lastLocationTime = now;
 
-                // Fetch order status from DB
-                let order = await ORDER.findOne({
-                    $or: [{ assignment: data.assignmentId }, { _id: data.assignmentId }]
-                });
+                // Fetch order status and assigned order status (brodcasted or assigned) from DB :
+                let order = await ORDER.findOne({ $or: [{ assignment: data.assignmentId }, { _id: data.assignmentId }] })
+                let assignment = await DELIVARY.findById(data.assignmentId)
 
-                if (!order) return;
+                if (!order || !assignment) return;
 
                 // Status gate: only relay location if status is picked up / on the way
-                let status = order.orderStatus ? order.orderStatus.toLowerCase() : "";
-                let isPickedUp = status === "picked up and on_the_way" ||
-                                 status.includes("picked_up") ||
-                                 status.includes("on_the_way");
+                let status = order?.orderStatus ? order.orderStatus.toLowerCase() : ""
+                let isPickedUp = status === "picked up and on_the_way"
 
-                if (!isPickedUp) {
-                    return;
-                }
-
-                socket.to(data.assignmentId).emit("delivaryBoyLocation", {
+                //location data :
+                let locationData = {
                     latitude: data?.latitude,
                     longitude: data?.longitude,
+
                     delivaryBoyId: delivaryBoyId, // Using verified token userId
                     assignmentId: data?.assignmentId,
                     delivaryBoyName: data?.delivaryBoyName,
                     delivaryBoyPhone: data?.delivaryBoyPhone
-                });
+                } 
+
+                // save delivary boy live location to DB :
+                let delivaryBoy = await USER.findById(delivaryBoyId)
+                if (delivaryBoy) {
+                    delivaryBoy.location = {
+                        type: "Point",
+                        coordinates: [data?.longitude, data?.latitude]
+                    }
+                    await delivaryBoy.save()
+                }   
+
+                // Socket id of each member in the room (same orderId room) :
+                let roomSockets = io.sockets.adapter.rooms.get(data.assignmentId)
+                if (!roomSockets || roomSockets.size === 0) return;
+
+                for (let socketId of roomSockets) {
+                    let roomSocket = io.sockets.sockets.get(socketId) // Get rooms each member socket id (user/delivery boy/shop owner)
+
+                    // console.log(chalk.green(roomSocket.data.fullname , "and socket id : ", roomSocket.data.socketId, "and role : ", roomSocket.data.role, "and assignmentId : ", data.assignmentId));
+                                        
+                    if (roomSocket) {
+                        // If order status is (out for delivary) and the assignment of that order is (asigned) then send location to shop owner :
+                        if (!isPickedUp && assignment?.status === "asigned") {
+                            if (roomSocket.data.role === "admin") {
+                                roomSocket.emit("delivaryBoyLocation", locationData)
+                            }
+                        }
+                        // If order status is (picked up and on the way) then send location to customer and shop owner :
+                        else if (isPickedUp && order?.orderStatus !== "compleate") {
+                            roomSocket.emit("delivaryBoyLocation", locationData)
+                        }
+                    }
+                }
+
             } catch (error) {
                 console.error("Error in delivaryBoyLiveLocation handler:", error);
             }

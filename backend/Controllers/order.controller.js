@@ -1061,21 +1061,21 @@ export let getOrderById = async (req, res) => {
 
         let orders = await ORDER.find({ orderGroupId: groupId, shopDetails: shop._id })
             .sort({ createdAt: -1 })
-            .populate("orderedBy", "fullname email role address pincode phone image")
+            .populate("orderedBy", "fullname email role address pincode phone image location")
             .populate("foodDetails", "foodname price category quantity paymentMethod foodtype description isAvailable")
-            .populate("shopDetails", "_id shopname phone city state")
+            .populate("shopDetails", "_id shopname phone city state shopGeoLocation")
             .populate({
                 path: "shopDetails",
                 populate: {
                     path: "owner",
-                    select: "_id fullname socketId available role"
+                    select: "_id fullname socketId available role location"
                 }
             })
             .populate({
                 path: "assignment",
                 populate: {
                     path: "assignto",
-                    select: "fullname email phone location socketId available"
+                    select: "fullname email phone location socketId available location"
                 }
             })
 
@@ -1670,21 +1670,21 @@ export let userCancelAndCompleateorder = async (req, res) => {
     }
 }
 
-// find userOrder By groupId [shop id se shop ke order get karne hai] 
+// find userOrder By groupId [shop id se shop ke order get karne hai] : order details for user 
 export let getUserOrderById = async (req, res) => {
     try {
         let orderGroupId = req.params.id
 
         let orderDetails = await ORDER.find({ orderGroupId: orderGroupId })
             .populate("orderedBy", "fullname email phone pincode address location")
-            .populate("shopDetails", "shopname email phone state location city owner")
+            .populate("shopDetails", "shopname email phone state location city owner shopGeoLocation")
             .populate("foodDetails", "foodname price description category image isAvailable foodtype")
             .populate("assignment", "paymentStatus")
             .populate({
                 path: "shopDetails",
                 populate: {
                     path: "owner",
-                    select: "_id fullname socketId available"
+                    select: "_id fullname socketId available location"
                 }
             })
             .populate({
@@ -1692,7 +1692,7 @@ export let getUserOrderById = async (req, res) => {
                 select: "paymentStatus",
                 populate: {
                     path: "assignto",
-                    select: "fullname email phone socketId available"
+                    select: "fullname email phone socketId available location"
                 }
             })
 

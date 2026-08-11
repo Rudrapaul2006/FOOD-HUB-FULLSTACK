@@ -309,7 +309,7 @@ export let googleLogin = async (req, res) => {
             })
         }
 
-        if (user?.available === "yes" && user?.socketId.length > 0) {
+        if (user?.available === "yes" && user?.socketId.length > 0 && user?.socketId !== null) {
             return res.status(400).json({
                 message: "Account is already logged in another tab or device",
                 success: false

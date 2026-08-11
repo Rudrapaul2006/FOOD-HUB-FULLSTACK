@@ -52,12 +52,12 @@ const App = () => {
   useGetPendingOrders() // [Get all order from user] from hook 
   useGetDelivaryData()
 
-  let { userData, loading} = useSelector(state => state.user)
-  
+  let { userData, loading } = useSelector(state => state.user)
+
   //connecting socket io with backend : 
   connectWithSocket()
 
-  if (loading) return null; 
+  if (loading) return null;
 
   return (
     <>
@@ -69,7 +69,7 @@ const App = () => {
 
         {/* Auth routes : */}
         <Route path='/signup' element={!userData ? <SignUp /> : <Navigate to={"/"} />} />
-        <Route path='/signin' element={!userData ? <SignIn   /> : <Navigate to={"/"} />} />
+        <Route path='/signin' element={!userData ? <SignIn /> : <Navigate to={"/"} />} />
         <Route path='/forgot-password' element={!userData ? <ForgotPassword /> : <Navigate to={"/"} />} />
 
         {/* Admins side route */}
@@ -89,10 +89,10 @@ const App = () => {
         {/* Delivary Boy Routes */}
         <Route path="/delivaryboyhome" element={userData ? <DelivaryBoyHomePage /> : <Navigate to="/signin" replace />} />
         <Route path='/delivaryOrderDetails/:id' element={userData ? <OrderDetailsForDelivaryBoy /> : <Navigate to={"/signin"} />} />
-        <Route path='/delivarypartnerprofile' element={userData ? <DelivaryPartnerProfile/> : <Navigate to={"/signin"} />} />
-        <Route path='/updatedelivarypartnerprofile' element={userData ? <UpdateDelivaryPartnerProfile/> : <Navigate to={"/signin"} />} />
-        <Route path='/delivarymap/:id' element={userData ? <DelivaryMap/> : <Navigate to={"/signin"} />} />
-        
+        <Route path='/delivarypartnerprofile' element={userData ? <DelivaryPartnerProfile /> : <Navigate to={"/signin"} />} />
+        <Route path='/updatedelivarypartnerprofile' element={userData ? <UpdateDelivaryPartnerProfile /> : <Navigate to={"/signin"} />} />
+        <Route path='/delivarymap/:id' element={userData ? <DelivaryMap /> : <Navigate to={"/signin"} />} />
+
 
         {/* User Side Routes */}
         <Route path='/userprofile' element={userData ? <UserProfile /> : <Navigate to={"/signin"} />} />
